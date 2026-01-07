@@ -100,3 +100,44 @@ export const MOCK_TICKETS: (Ticket & { event: Event })[] = [
   }
 ];
 
+export interface Listing {
+  id: number;
+  ticket: Ticket & { event: Event };
+  price: number;
+  sellerName: string;
+}
+
+export const MOCK_LISTINGS: Listing[] = [
+  {
+    id: 1,
+    ticket: {
+      ...MOCK_TICKETS[0],
+      id: 201,
+      seat: "VIP-B22",
+    },
+    price: 55000, // 550.00 SGD
+    sellerName: "Alex Tan",
+  },
+  {
+    id: 2,
+    ticket: {
+      ...MOCK_TICKETS[1],
+      id: 202,
+      seat: "GA-Floor-34",
+    },
+    price: 18000, // 180.00 SGD
+    sellerName: "Sarah Lim",
+  },
+  {
+    id: 3,
+    ticket: {
+      ...MOCK_TICKETS[0],
+      id: 203,
+      seat: "VIP-C10",
+      event: MOCK_EVENTS[2], // NFT Art Gala
+    },
+    price: 12000, // 120.00 SGD
+    sellerName: "Jason Wong",
+  },
+];
+

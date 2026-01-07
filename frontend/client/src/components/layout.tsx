@@ -1,136 +1,140 @@
 import { Link, useLocation } from "wouter";
-import { Ticket, Home, User, LogIn, Menu, X, ShoppingBag } from "lucide-react";
+import { Ticket, Home, User, LogIn, ShoppingBag, Calendar, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { user, isAuthenticated } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const displayName = user
+    ? [user.firstName, user.lastName].filter(Boolean).join(" ").trim()
+    : "";
 
   const navItems = [
-    { href: "/", label: "Events", icon: Home },
+    { href: "/", label: "Home", icon: Home },
+    { href: "/events", label: "Events", icon: Calendar },
     { href: "/marketplace", label: "Marketplace", icon: ShoppingBag },
-    { href: "/my-tickets", label: "My Wallet", icon: Ticket },
+    { href: "/my-tickets", label: "Wallet", icon: Ticket },
     { href: "/profile", label: "Identity", icon: User },
   ];
 
+  // Helper to determine if a link is active (handles nested routes)
+  const isLinkActive = (href: string) => {
+    if (href === "/") return location === "/";
+    return location.startsWith(href);
+  };
+
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans text-foreground overflow-x-hidden">
-      {/* Navbar */}
-      <header className="fixed top-0 left-0 right-0 z-50 glass h-16">
+    <div className="min-h-screen bg-background flex flex-col font-sans text-foreground selection:bg-primary/30">
+      
+      {/* =======================
+          DESKTOP & MOBILE HEADER 
+          ======================= */}
+      <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-white/5 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 h-full flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-black font-bold font-display text-xl shadow-[0_0_15px_rgba(34,197,94,0.5)] group-hover:scale-110 transition-transform">
+          
+          {/* 1. Logo */}
+          <Link href="/" className="flex items-center gap-3 group relative z-10">
+            <div className="relative w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center text-black font-bold font-display text-xl shadow-[0_0_20px_rgba(34,197,94,0.4)] group-hover:shadow-[0_0_30px_rgba(34,197,94,0.6)] transition-all duration-300">
               V
+              <div className="absolute inset-0 bg-white/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
-            <span className="font-display font-bold text-xl tracking-tight group-hover:text-primary transition-colors">
+            <span className="font-display font-bold text-lg tracking-tight group-hover:text-primary transition-colors hidden sm:block">
               VeriTix
             </span>
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-1">
+          {/* 2. Desktop Navigation (Hidden on Mobile) */}
+          <nav className="hidden md:flex items-center gap-1 relative z-0">
             {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location === item.href;
+              const isActive = isLinkActive(item.href);
               return (
                 <Link key={item.href} href={item.href}>
-                  <div
-                    className={`
-                      px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-all duration-200 cursor-pointer
-                      ${isActive 
-                        ? "bg-primary/10 text-primary shadow-[0_0_10px_rgba(34,197,94,0.1)] border border-primary/20" 
-                        : "text-muted-foreground hover:text-foreground hover:bg-white/5"}
-                    `}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {item.label}
+                  <div className={`relative px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 cursor-pointer ${isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                    
+                    {/* Sliding Background Animation */}
+                    {isActive && (
+                      <motion.div
+                        layoutId="desktop-navbar-pill"
+                        className="absolute inset-0 bg-primary rounded-full -z-10"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                    
+                    <span className="relative z-10 flex items-center gap-2">
+                      {item.label}
+                    </span>
                   </div>
                 </Link>
               );
             })}
           </nav>
 
-          {/* Auth Button */}
-          <div className="hidden md:flex items-center">
+          {/* 3. Right Side Actions (Auth) */}
+          <div className="flex items-center gap-4">
             {isAuthenticated ? (
-               <div className="flex items-center gap-3 bg-card border border-white/10 px-3 py-1.5 rounded-full">
-                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                 <span className="text-xs font-mono text-muted-foreground truncate max-w-[100px]">
-                   {user?.displayName || user?.username}
-                 </span>
+               <div className="flex items-center gap-3 pl-4 border-l border-white/10">
+                 <div className="hidden sm:flex flex-col items-end">
+                   <span className="text-xs font-medium text-foreground">
+                     {displayName || user?.email || "Anonymous"}
+                   </span>
+                   <span className="text-[10px] text-primary flex items-center gap-1">
+                     <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                     Connected
+                   </span>
+                 </div>
+                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center shadow-inner">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                 </div>
                </div>
             ) : (
               <Link href="/login">
-                <Button size="sm" variant="neon" className="gap-2">
+                <Button size="sm" className="gap-2 rounded-full font-semibold shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_25px_rgba(34,197,94,0.5)] transition-shadow">
                   <LogIn className="w-4 h-4" />
-                  Singpass Login
+                  <span className="hidden sm:inline">Singpass</span> Login
                 </Button>
               </Link>
             )}
           </div>
-
-          {/* Mobile Menu Toggle */}
-          <button 
-            className="md:hidden p-2 text-foreground"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X /> : <Menu />}
-          </button>
         </div>
       </header>
 
-      {/* Mobile Nav Drawer */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 top-16 z-40 bg-background/95 backdrop-blur-xl p-4 md:hidden flex flex-col gap-4 border-t border-white/5"
-          >
-            {navItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <div 
-                  className="p-4 rounded-xl bg-card border border-white/5 flex items-center gap-3 text-lg font-medium active:scale-95 transition-transform"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <item.icon className="w-5 h-5 text-primary" />
-                  {item.label}
-                </div>
-              </Link>
-            ))}
-            {!isAuthenticated && (
-              <Link href="/login">
-                <Button className="w-full mt-4" size="lg" onClick={() => setMobileMenuOpen(false)}>
-                  Login with Singpass
-                </Button>
-              </Link>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Main Content */}
-      <main className="flex-1 pt-24 pb-20 container mx-auto px-4 relative z-0">
+      {/* =======================
+          MAIN CONTENT AREA
+          ======================= */}
+      <main className="flex-1 pt-16 pb-24 md:pb-12 container mx-auto px-4 md:px-6 relative z-0 max-w-7xl">
         {children}
       </main>
 
-      {/* Mobile Bottom Bar (Alternative to top drawer for quick access) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-xl border-t border-white/5 z-50 flex justify-around items-center px-2">
+      {/* =======================
+          MOBILE BOTTOM NAV
+          ======================= */}
+      <div className="md:hidden fixed bottom-4 left-4 right-4 h-16 bg-background/80 backdrop-blur-xl border border-white/10 rounded-2xl z-50 shadow-2xl flex justify-around items-center px-1">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location === item.href;
+          const isActive = isLinkActive(item.href);
+          
           return (
             <Link key={item.href} href={item.href}>
-              <div className={`flex flex-col items-center justify-center w-16 h-full gap-1 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
-                <motion.div whileTap={{ scale: 0.8 }}>
-                  <Icon className={`w-6 h-6 ${isActive && "drop-shadow-[0_0_8px_rgba(34,197,94,0.6)]"}`} />
+              <div className="relative flex flex-col items-center justify-center w-14 h-full group cursor-pointer">
+                {/* Active Indicator Light */}
+                {isActive && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-8 h-1 bg-primary rounded-b-full blur-[2px]" />
+                )}
+
+                <motion.div 
+                  whileTap={{ scale: 0.8 }}
+                  animate={isActive ? { y: -2 } : { y: 0 }}
+                  className={`p-1.5 rounded-xl transition-colors ${isActive ? "text-primary bg-primary/10" : "text-muted-foreground group-hover:text-foreground"}`}
+                >
+                  <Icon className="w-5 h-5" />
                 </motion.div>
-                <span className="text-[10px] font-medium">{item.label}</span>
+                
+                {/* Label (Only shows for active or on very small screens) */}
+                <span className={`text-[10px] font-medium transition-all duration-300 ${isActive ? "text-foreground opacity-100 scale-100" : "text-muted-foreground opacity-0 scale-75 h-0 overflow-hidden"}`}>
+                  {item.label}
+                </span>
               </div>
             </Link>
           );
