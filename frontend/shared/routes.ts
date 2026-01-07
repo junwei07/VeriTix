@@ -1,122 +1,92 @@
-import { z } from 'zod';
-import { insertUserSchema, insertEventSchema, insertTicketSchema, events, tickets, users } from './schema';
+import { z } from "zod";
+import { eventSchema, ticketSchema, qrCodeSchema } from "./schema";
 
-// ============================================
-// SHARED ERROR SCHEMAS
-// ============================================
-export const errorSchemas = {
-  validation: z.object({
-    message: z.string(),
-    field: z.string().optional(),
-  }),
-  notFound: z.object({
-    message: z.string(),
-  }),
-  internal: z.object({
-    message: z.string(),
-  }),
-  unauthorized: z.object({
-    message: z.string(),
-  }),
-};
+// Helper function to build URLs with parameters
+export function buildUrl(path: string, params: Record<string, any>): string {
+  return path.replace(/:(\w+)/g, (_, key) => params[key]);
+}
 
-// ============================================
-// API CONTRACT
-// ============================================
+// API contract with Zod schemas for request/response validation
 export const api = {
-  // Auth is handled by Replit Auth blueprint, but we might need a profile endpoint
   auth: {
-    me: {
-      method: 'GET' as const,
-      path: '/api/me',
+    user: {
+      path: "/api/auth/user",
       responses: {
-        200: z.custom<typeof users.$inferSelect>(), // Returns the DB user with wallet info
-        401: errorSchemas.unauthorized,
+        200: z.object({
+          id: z.string(),
+          email: z.string(),
+          firstName: z.string(),
+          lastName: z.string(),
+          profileImageUrl: z.string().nullable().optional(),
+          createdAt: z.string(),
+          updatedAt: z.string().optional(),
+        }).nullable(),
       },
-    }
+    },
+    logout: {
+      path: "/api/logout",
+    },
+    login: {
+      path: "/api/login",
+    },
   },
   events: {
     list: {
-      method: 'GET' as const,
-      path: '/api/events',
+      path: "/api/events",
       responses: {
-        200: z.array(z.custom<typeof events.$inferSelect>()),
+        200: z.array(eventSchema),
       },
     },
     get: {
-      method: 'GET' as const,
-      path: '/api/events/:id',
+      path: "/api/events/:id",
       responses: {
-        200: z.custom<typeof events.$inferSelect>(),
-        404: errorSchemas.notFound,
+        200: eventSchema,
       },
     },
   },
   tickets: {
     list: {
-      method: 'GET' as const,
-      path: '/api/tickets', // My tickets
+      path: "/api/tickets",
       responses: {
-        200: z.array(z.custom<typeof tickets.$inferSelect & { event: typeof events.$inferSelect }>()), // Include event details
-      },
-    },
-    purchase: {
-      method: 'POST' as const,
-      path: '/api/tickets/purchase',
-      input: z.object({
-        eventId: z.number(),
-      }),
-      responses: {
-        201: z.custom<typeof tickets.$inferSelect>(),
-        400: errorSchemas.validation,
-        404: errorSchemas.notFound, // Event not found or sold out
+        200: z.array(ticketSchema),
       },
     },
     get: {
-      method: 'GET' as const,
-      path: '/api/tickets/:id',
+      path: "/api/tickets/:id",
       responses: {
-        200: z.custom<typeof tickets.$inferSelect & { event: typeof events.$inferSelect, qrData?: string }>(), 
-        404: errorSchemas.notFound,
-      },
-    },
-    transfer: {
-      method: 'POST' as const,
-      path: '/api/tickets/transfer',
-      input: z.object({
-        ticketId: z.number(),
-        recipientUsername: z.string(), // Simple transfer by username for now
-      }),
-      responses: {
-        200: z.object({ success: z.boolean(), newTicketId: z.number() }),
-        400: errorSchemas.validation,
-        403: z.object({ message: z.string() }), // Not owner
+        200: ticketSchema,
       },
     },
     generateQR: {
-      method: 'GET' as const,
-      path: '/api/tickets/:id/qr', // Get dynamic QR data
+      path: "/api/tickets/:id/qr",
+      responses: {
+        200: qrCodeSchema,
+      },
+    },
+    purchase: {
+      path: "/api/tickets/purchase",
+      method: "POST",
+      body: z.object({
+        eventId: z.number(),
+      }),
+      responses: {
+        201: ticketSchema,
+      },
+    },
+    transfer: {
+      path: "/api/tickets/transfer",
+      method: "POST",
+      body: z.object({
+        ticketId: z.number(),
+        recipientUsername: z.string(),
+      }),
       responses: {
         200: z.object({
-          signature: z.string(),
-          timestamp: z.number(),
-          walletAddress: z.string(),
-          ticketId: z.number()
+          success: z.boolean(),
+          newTicketId: z.number(),
+          message: z.string().optional(),
         }),
-        403: errorSchemas.unauthorized,
       },
-    }
+    },
   },
 };
-
-export function buildUrl(path: string, params?: Record<string, string | number>): string {
-  let url = path;
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      if (url.includes(`:${key}`)) {
-        url = url.replace(`:${key}`, String(value));
-      }
-    });
-  }
-  return url;
-}
