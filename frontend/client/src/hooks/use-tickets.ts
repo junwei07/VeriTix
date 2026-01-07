@@ -1,15 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { z } from "zod";
+import { MOCK_TICKETS } from "@/lib/mock-data";
 
 // GET /api/tickets (List my tickets)
 export function useMyTickets() {
   return useQuery({
     queryKey: [api.tickets.list.path],
     queryFn: async () => {
+      // Return mock tickets for display
+      return MOCK_TICKETS;
+
+      /*
       const res = await fetch(api.tickets.list.path, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch tickets");
       return api.tickets.list.responses[200].parse(await res.json());
+      */
     },
   });
 }
@@ -19,6 +25,10 @@ export function useTicket(id: number) {
   return useQuery({
     queryKey: [api.tickets.get.path, id],
     queryFn: async () => {
+      // Find in mock tickets
+      const ticket = MOCK_TICKETS.find(t => t.id === id);
+      if (ticket) return ticket;
+
       const url = buildUrl(api.tickets.get.path, { id });
       const res = await fetch(url, { credentials: "include" });
       if (res.status === 404) return null;

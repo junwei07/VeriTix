@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Ticket, Home, User, LogIn, Menu, X } from "lucide-react";
+import { Ticket, Home, User, LogIn, Menu, X, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { href: "/", label: "Events", icon: Home },
+    { href: "/marketplace", label: "Marketplace", icon: ShoppingBag },
     { href: "/my-tickets", label: "My Wallet", icon: Ticket },
     { href: "/profile", label: "Identity", icon: User },
   ];
