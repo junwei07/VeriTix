@@ -32,7 +32,7 @@ router.post('/login', async (req, res) => {
       };
     }
 
-    res.status(200).json(users[nric]);
+    res.status(200).json(users[nric]); // Return user info including wallet
   } catch (error) {
     console.error("Login Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
