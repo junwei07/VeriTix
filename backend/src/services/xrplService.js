@@ -6,7 +6,6 @@ const XRPL_TESTNET_WSS =
 
 let _client = null;
 
-
 async function getClient() {
   if (_client && _client.isConnected()) return _client;
   _client = new xrpl.Client(XRPL_TESTNET_WSS);

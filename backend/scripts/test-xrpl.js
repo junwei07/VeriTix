@@ -9,6 +9,7 @@ async function runTest() {
     console.log("--- Step 1: Creating & Funding Wallet ---");
     const userWallet = await createWallet();
     console.log("✅ User Wallet Created:", userWallet.address);
+    console.log("🔑 Your Seed (PUT THIS IN .ENV):", userWallet.seed);
     console.log("💰 Balance:", userWallet.balance, "XRP");
 
     // 2. Test NFT Minting (Soulbound)
