@@ -108,7 +108,56 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* =======================
-          MOBILE BOTTOM NAV
+          DESKTOP FOOTER
+          ======================= */}
+      <footer className="hidden md:block border-t border-white/5 bg-card/30 backdrop-blur-sm">
+        <div className="container mx-auto px-6 py-10 max-w-7xl">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div className="col-span-1 md:col-span-2 space-y-4">
+              <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-black font-bold font-display text-xl shadow-[0_0_15px_rgba(34,197,94,0.3)]">V</div>
+                 <span className="font-display font-bold text-lg tracking-tight text-white">VeriTix</span>
+              </div>
+              <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
+                The next generation of event ticketing. Secure, transparent, and verified on the XRP Ledger. Stop scalping, start experiencing.
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <h4 className="text-xs uppercase tracking-widest font-bold text-white">Platform</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/events" className="hover:text-primary transition-colors">Browse Events</Link></li>
+                <li><Link href="/marketplace" className="hover:text-primary transition-colors">Secondary Market</Link></li>
+                <li><Link href="/profile" className="hover:text-primary transition-colors">Verified Identity</Link></li>
+              </ul>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-xs uppercase tracking-widest font-bold text-white">Legal</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="hover:text-primary cursor-pointer transition-colors">Privacy Policy</li>
+                <li className="hover:text-primary cursor-pointer transition-colors">Terms of Service</li>
+                <li className="hover:text-primary cursor-pointer transition-colors">Cookie Policy</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-xs text-muted-foreground font-mono">
+              © 2026 VeriTix Platform • Powered by XRPL
+            </p>
+            <div className="flex items-center gap-6">
+               <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                 <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                 Mainnet Beta
+               </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {/* =======================
+          MOBILE BOTTOM NAV (Pinned to Bottom)
           ======================= */}
       <div className="md:hidden fixed bottom-4 left-4 right-4 h-16 bg-background/80 backdrop-blur-xl border border-white/10 rounded-2xl z-50 shadow-2xl flex justify-around items-center px-1">
         {navItems.map((item) => {

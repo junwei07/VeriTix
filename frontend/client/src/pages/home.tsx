@@ -1,21 +1,44 @@
 import { useEvents } from "@/hooks/use-events";
 import { EventCard } from "@/components/event-card";
-import { Loader2, Search, Ticket, Sparkles, TrendingUp, ChevronDown } from "lucide-react";
+import { Loader2, Search, Ticket, Sparkles, TrendingUp, ChevronDown, Mail, Twitter, Facebook, Linkedin, Instagram, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge"; 
+import { Badge } from "@/components/ui/badge";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function HomePage() {
   const { data: events, isLoading, error } = useEvents();
   const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
 
-  const filteredEvents = events?.filter(e =>
-    e.title.toLowerCase().includes(search.toLowerCase()) ||
-    e.location.toLowerCase().includes(search.toLowerCase())
-  );
+  const categories = ["All", "Music", "Tech", "Art", "Workshop", "Networking", "Finance"];
 
+  const filteredEvents = events?.filter(e => {
+    const matchesSearch = e.title.toLowerCase().includes(search.toLowerCase()) ||
+      e.location.toLowerCase().includes(search.toLowerCase());
+    
+    if (selectedCategory === "All") return matchesSearch;
+    
+    const categoryMatch = 
+      e.title.toLowerCase().includes(selectedCategory.toLowerCase()) || 
+      e.description.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+      (selectedCategory === "Tech" && (e.title.includes("Summit") || e.title.includes("Builders") || e.title.includes("Symposium"))) ||
+      (selectedCategory === "Finance" && (e.title.includes("Fintech") || e.title.includes("DeFi"))) ||
+      (selectedCategory === "Music" && (e.title.includes("Music") || e.title.includes("Concert") || e.title.includes("Festival")));
+
+    return matchesSearch && categoryMatch;
+  });
+
+  const featuredEvents = events?.slice(0, 3) || [];
   const trendingTags = ["Concerts", "Tech Conf", "Crypto Events", "Festivals"];
 
   return (
@@ -164,19 +187,82 @@ export default function HomePage() {
       </section>
 
       {/* =============================================
-        EVENTS SECTION (Below Fold)
+        FEATURED CAROUSEL SECTION
+        =============================================
+      */}
+      {events && events.length > 0 && (
+        <section className="container mx-auto px-4 md:px-6 py-12 border-b border-white/5">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-display font-bold flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-yellow-400" />
+              Featured Events
+            </h2>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">View All</Button>
+            </div>
+          </div>
+
+          <Carousel className="w-full">
+            <CarouselContent className="-ml-4">
+              {featuredEvents.map((event) => (
+                <CarouselItem key={event.id} className="pl-4 md:basis-1/2 lg:basis-1/3">
+                  <div className="p-1">
+                    <Card className="bg-card/50 backdrop-blur-sm border-white/10 overflow-hidden hover:border-primary/50 transition-all duration-300 group cursor-pointer">
+                      <CardContent className="p-0 relative aspect-[16/9]">
+                        <img 
+                          src={event.imageUrl || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80&w=1000"} 
+                          alt={event.title} 
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                        <div className="absolute bottom-0 left-0 p-4 w-full">
+                          <Badge className="mb-2 bg-primary/90 hover:bg-primary">Featured</Badge>
+                          <h3 className="text-xl font-bold text-white leading-tight mb-1">{event.title}</h3>
+                          <p className="text-sm text-gray-300 line-clamp-1">{event.location}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="hidden md:flex -left-4 bg-background/80 backdrop-blur border-white/10" />
+            <CarouselNext className="hidden md:flex -right-4 bg-background/80 backdrop-blur border-white/10" />
+          </Carousel>
+        </section>
+      )}
+
+      {/* =============================================
+        EVENTS SECTION
         =============================================
       */}
       <section className="container mx-auto px-4 md:px-6 py-24 min-h-screen">
         <div className="space-y-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/10 pb-6">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-display font-bold">Upcoming Events</h2>
-              <p className="text-muted-foreground mt-2">Browse the latest verified events on the ledger.</p>
+          
+          {/* Header & Categories */}
+          <div className="flex flex-col space-y-6 border-b border-white/10 pb-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-display font-bold">Upcoming Events</h2>
+                <p className="text-muted-foreground mt-2">Browse the latest verified events on the ledger.</p>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="rounded-full">Music</Button>
-              <Button variant="outline" className="rounded-full">Sports</Button>
+
+            {/* Category Filter Pills */}
+            <div className="flex overflow-x-auto pb-2 gap-2 scrollbar-hide">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 border ${
+                    selectedCategory === cat 
+                      ? "bg-primary text-primary-foreground border-primary" 
+                      : "bg-background/50 border-white/10 text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -210,11 +296,48 @@ export default function HomePage() {
                     <Search className="w-8 h-8 text-muted-foreground" />
                   </div>
                   <h3 className="text-lg font-medium">No events found</h3>
-                  <p className="text-muted-foreground">Try adjusting your search terms</p>
+                  <p className="text-muted-foreground">Try adjusting your search terms or category</p>
+                  <Button 
+                    variant="link" 
+                    onClick={() => { setSearch(""); setSelectedCategory("All"); }}
+                    className="mt-2 text-primary"
+                  >
+                    Clear filters
+                  </Button>
                 </div>
               )}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* =============================================
+        NEWSLETTER SECTION
+        =============================================
+      */}
+      <section className="container mx-auto px-4 md:px-6 py-20 mb-12">
+        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-primary/10 via-emerald-500/5 to-purple-500/10 border border-white/10 p-8 md:p-12 lg:p-16 text-center">
+          <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
+          
+          <div className="relative z-10 max-w-2xl mx-auto space-y-6">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 text-primary mb-2">
+              <Mail className="w-6 h-6" />
+            </div>
+            <h2 className="text-3xl md:text-4xl font-display font-bold">Stay in the loop</h2>
+            <p className="text-muted-foreground text-lg">
+              Get the latest updates on exclusive drops, artist announcements, and early bird tickets directly to your inbox.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+              <Input 
+                placeholder="Enter your email address" 
+                className="bg-background/50 border-white/10 h-12 text-base"
+              />
+              <Button size="lg" className="h-12 px-8 font-semibold">Subscribe</Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              By subscribing, you agree to our Terms of Service and Privacy Policy.
+            </p>
+          </div>
         </div>
       </section>
     </div>

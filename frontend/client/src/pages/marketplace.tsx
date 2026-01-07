@@ -67,24 +67,24 @@ export default function MarketplacePage() {
             </div>
             
             {/* Full Width Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
               {stats.map((stat, i) => (
                 <motion.div
                   key={stat.label}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: i * 0.05 }}
-                  className="bg-white/5 border border-white/5 rounded-xl p-4 hover:bg-white/10 transition-colors"
+                  className="bg-white/5 border border-white/5 rounded-xl p-3 md:p-4 hover:bg-white/10 transition-colors"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center ${stat.color}`}>
-                      <stat.icon className="w-5 h-5" />
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0 ${stat.color}`}>
+                      <stat.icon className="w-4 h-4 md:w-5 md:h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] text-muted-foreground uppercase tracking-wide truncate">{stat.label}</p>
-                      <div className="flex items-baseline gap-2">
-                        <p className="font-bold text-white text-lg">{stat.value}</p>
-                        <span className={`text-[10px] font-medium ${stat.change.startsWith('+') ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <p className="text-[9px] md:text-[11px] text-muted-foreground uppercase tracking-wide truncate">{stat.label}</p>
+                      <div className="flex items-baseline gap-1 md:gap-2">
+                        <p className="font-bold text-white text-sm md:text-lg truncate">{stat.value}</p>
+                        <span className={`text-[8px] md:text-[10px] font-medium ${stat.change.startsWith('+') ? 'text-emerald-400' : 'text-red-400'}`}>
                           {stat.change}
                         </span>
                       </div>
@@ -101,27 +101,27 @@ export default function MarketplacePage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between"
+          className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between"
         >
           {/* Search */}
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input 
               placeholder="Search events or sellers..." 
-              className="pl-10 bg-card/50 border-white/10 rounded-lg h-10 text-sm"
+              className="pl-10 bg-card/50 border-white/10 rounded-lg h-10 text-sm focus:ring-primary/20"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
           {/* Sort Controls */}
-          <div className="flex items-center gap-2">
-            <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
+            <ArrowUpDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             <div className="flex gap-1">
               <Button 
                 variant={sortBy === "recent" ? "secondary" : "ghost"} 
                 size="sm" 
-                className="rounded-lg text-xs h-8 px-3"
+                className="rounded-lg text-[10px] md:text-xs h-8 px-2 md:px-3 whitespace-nowrap"
                 onClick={() => setSortBy("recent")}
               >
                 Recent
@@ -129,18 +129,18 @@ export default function MarketplacePage() {
               <Button 
                 variant={sortBy === "price-low" ? "secondary" : "ghost"} 
                 size="sm" 
-                className="rounded-lg text-xs h-8 px-3"
+                className="rounded-lg text-[10px] md:text-xs h-8 px-2 md:px-3 whitespace-nowrap"
                 onClick={() => setSortBy("price-low")}
               >
-                Price ↓
+                Price ↑
               </Button>
               <Button 
                 variant={sortBy === "price-high" ? "secondary" : "ghost"} 
                 size="sm" 
-                className="rounded-lg text-xs h-8 px-3"
+                className="rounded-lg text-[10px] md:text-xs h-8 px-2 md:px-3 whitespace-nowrap"
                 onClick={() => setSortBy("price-high")}
               >
-                Price ↑
+                Price ↓
               </Button>
             </div>
           </div>
@@ -163,12 +163,12 @@ export default function MarketplacePage() {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: i * 0.03 }}
-                className="group bg-card/40 hover:bg-card/60 backdrop-blur-sm border border-white/5 hover:border-white/10 rounded-xl p-4 transition-all duration-200"
+                className="group bg-card/40 hover:bg-card/60 backdrop-blur-sm border border-white/5 hover:border-white/10 rounded-xl p-3 md:p-4 transition-all duration-200"
               >
-                <div className="grid grid-cols-12 gap-4 items-center">
+                <div className="grid grid-cols-12 gap-3 md:gap-4 items-center">
                   {/* Event Info with Thumbnail */}
-                  <div className="col-span-12 md:col-span-5 flex items-center gap-4">
-                    <div className="relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-white/5">
+                  <div className="col-span-12 md:col-span-5 flex items-center gap-3 md:gap-4">
+                    <div className="relative w-12 h-12 md:w-14 md:h-14 rounded-lg overflow-hidden flex-shrink-0 bg-white/5">
                       <img
                         src={listing.ticket.event.imageUrl || ""}
                         alt={listing.ticket.event.title}
@@ -176,52 +176,54 @@ export default function MarketplacePage() {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-white truncate group-hover:text-primary transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <h3 className="font-semibold text-white truncate text-sm md:text-base group-hover:text-primary transition-colors">
                           {listing.ticket.event.title}
                         </h3>
-                        <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-400 hidden sm:inline-flex">
-                          <Ticket className="w-2.5 h-2.5 mr-1" />
+                        <Badge variant="outline" className="text-[8px] md:text-[10px] border-emerald-500/30 text-emerald-400 hidden xs:inline-flex">
                           Verified
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">
+                      <p className="text-[10px] md:text-xs text-muted-foreground truncate">
                         {format(new Date(listing.ticket.event.date), "MMM d, yyyy • h:mm a")}
                       </p>
                     </div>
                   </div>
 
-                  {/* Seat */}
-                  <div className="col-span-4 md:col-span-2">
-                    <p className="md:hidden text-[10px] text-muted-foreground uppercase mb-0.5">Seat</p>
-                    <p className="font-mono text-sm text-white bg-white/5 rounded-md px-2 py-1 inline-block">
-                      {listing.ticket.seat}
-                    </p>
-                  </div>
+                  {/* Metadata Row (Mobile) */}
+                  <div className="col-span-12 md:col-span-6 grid grid-cols-3 gap-2 items-center">
+                    {/* Seat */}
+                    <div className="flex flex-col">
+                      <p className="md:hidden text-[9px] text-muted-foreground uppercase tracking-tight mb-0.5">Seat</p>
+                      <p className="font-mono text-xs text-white bg-white/5 rounded-md px-1.5 py-1 text-center md:text-left md:bg-transparent md:px-0 md:py-0">
+                        {listing.ticket.seat}
+                      </p>
+                    </div>
 
-                  {/* Seller */}
-                  <div className="col-span-4 md:col-span-2">
-                    <p className="md:hidden text-[10px] text-muted-foreground uppercase mb-0.5">Seller</p>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-5 h-5 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex-shrink-0" />
-                      <span className="text-sm text-muted-foreground truncate">{listing.sellerName}</span>
+                    {/* Seller */}
+                    <div className="flex flex-col">
+                      <p className="md:hidden text-[9px] text-muted-foreground uppercase tracking-tight mb-0.5">Seller</p>
+                      <div className="flex items-center gap-1.5 justify-center md:justify-start">
+                        <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex-shrink-0" />
+                        <span className="text-xs text-muted-foreground truncate">{listing.sellerName}</span>
+                      </div>
+                    </div>
+
+                    {/* Price */}
+                    <div className="flex flex-col md:text-right">
+                      <p className="md:hidden text-[9px] text-muted-foreground uppercase tracking-tight mb-0.5">Price</p>
+                      <p className="text-sm md:text-lg font-bold text-emerald-400 text-center md:text-right">
+                        ${(listing.price / 100).toFixed(2)}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Price */}
-                  <div className="col-span-4 md:col-span-2 md:text-right">
-                    <p className="md:hidden text-[10px] text-muted-foreground uppercase mb-0.5">Price</p>
-                    <p className="text-lg font-bold text-emerald-400">
-                      ${(listing.price / 100).toFixed(2)}
-                    </p>
-                  </div>
-
                   {/* Action */}
-                  <div className="col-span-12 md:col-span-1 flex justify-end">
+                  <div className="col-span-12 md:col-span-1">
                     <Button 
                       size="sm" 
-                      className="w-full md:w-auto rounded-lg bg-white text-black hover:bg-white/90 font-semibold text-xs h-8 px-4"
+                      className="w-full md:w-auto rounded-lg bg-white text-black hover:bg-white/90 font-bold text-xs h-9 md:h-8 px-4"
                     >
                       Buy
                     </Button>
