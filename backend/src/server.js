@@ -8,6 +8,10 @@ console.log("ENV check:", {
 });
 
 const express = require("express");
+const cors = require("cors");
+
+const app = express();
+
 app.use(cors({ origin: true, credentials: true }));
 const mongoose = require("mongoose");
 
@@ -21,7 +25,6 @@ const mptMarketplaceRoutes = require("./routes/mptMarketplaceRoutes");
 const eventRoutes = require("./routes/eventRoutes");
 const refundRoutes = require("./routes/refundRoutes");
 
-const app = express();
 
 app.use(cors());
 app.use(
@@ -90,14 +93,3 @@ mongoose
     });
   });
 
-// Serve Vite build
-const frontendDist = path.join(__dirname, "..", "frontend", "dist");
-app.use(express.static(frontendDist));
-
-// SPA fallback (important for wouter routes like /new-nft)
-app.get("*", (req, res, next) => {
-  // Don't hijack API routes
-  if (req.path.startsWith("/api") || req.path.startsWith("/health"))
-    return next();
-  res.sendFile(path.join(frontendDist, "index.html"));
-});
