@@ -1,0 +1,219 @@
+VeriTix Senior Full-Stack & XRPL Engineer Rules
+1. Product Definition & Vision
+
+VeriTix is a secure, blockchain-enabled ticketing platform that bridges traditional Web2 ticketing (e.g. Ticketmaster) with Web3-backed authenticity and enforcement using the XRP Ledger (XRPL).
+
+VeriTix is not a crypto-native app. It is a Web2.5 system:
+
+Users pay in fiat via Stripe
+
+Identity is verified via Singpass (mocked)
+
+Blockchain operations are fully abstracted from users
+
+Primary Goals
+
+Prevent scalping, fraud, and bot abuse
+
+Guarantee ticket authenticity and ownership
+
+Enable safe, regulated secondary resale
+
+Preserve a familiar Web2 user experience
+
+2. End-to-End User Flow (Authoritative)
+Primary Sale
+
+User selects a ticket on a traditional platform (e.g. Ticketmaster).
+
+User is redirected to VeriTix to complete purchase.
+
+User authenticates using Singpass (NRIC-based mock).
+
+User pays using Stripe (credit/debit card).
+
+AFTER payment confirmation:
+
+Backend creates an XRPL wallet (Invisible Wallet) if the user does not have one.
+
+Backend mints a ticket NFT to that wallet.
+
+User views the ticket in the VeriTix dashboard.
+
+Secondary Resale (Closed Marketplace)
+
+User lists a ticket for resale within VeriTix only.
+
+Listing price is validated against the original ticket price.
+
+Buyer authenticates via Singpass.
+
+Buyer pays via Stripe.
+
+VeriTix acts as an intermediary:
+
+NFT ownership is reassigned using burn-and-remint or brokered transfer.
+
+Funds flow: Buyer → Stripe → VeriTix → Seller.
+
+Buyer receives the new ticket NFT.
+
+3. Technical Stack & Network
+
+Frontend: React (Vite), Tailwind CSS, Lucide Icons
+
+Backend: Node.js, Express.js
+
+Blockchain: xrpl.js
+
+Network: XRPL Testnet
+wss://s.altnet.rippletest.net:51233
+
+4. Identity & Wallet Model (Critical)
+
+Every user is uniquely identified by NRIC (Singpass mock).
+
+One NRIC → One XRPL Wallet.
+
+Wallets are:
+
+Created and managed only by the backend
+
+Never exposed to the user
+
+Used solely for ticket custody and signing
+
+Wallet Funding
+
+Backend must ensure wallets meet XRPL reserve requirements.
+
+Wallets are sponsored or funded by the platform (out-of-pocket).
+
+5. Blockchain Asset Rules (XLS-20)
+
+Tickets are minted as NFTs with strict constraints.
+
+Required NFT Properties
+
+Represent exactly one ticket
+
+Metadata includes:
+
+Event ID
+
+Seat / category
+
+Original purchase price
+
+Issuer / platform signature
+
+Flags & Transfer Rules
+
+tfBurnable = true
+→ Allows VeriTix to revoke or reissue tickets
+
+User-to-user free transfers are NOT allowed
+
+All ownership changes MUST go through VeriTix-controlled flows
+
+NFTs are custodial, regulated assets, not open collectibles.
+
+6. Payments & Settlement
+
+Stripe is the source of truth for payments
+
+Blockchain actions MUST occur only after:
+
+checkout.session.completed
+
+No crypto payments from users
+
+XRPL is used for:
+
+Ownership
+
+Authenticity
+
+Anti-fraud enforcement
+
+7. Marketplace & Anti-Scalping Rules
+
+VeriTix operates a closed-loop marketplace
+
+Tickets:
+
+Cannot be transferred externally
+
+Cannot be sold above original price
+
+Price enforcement is done server-side
+
+Suspicious activity triggers:
+
+Listing blocks
+
+Account blacklisting
+
+NFT revocation (burn)
+
+8. UI / UX Principles
+
+Web2-first, non-technical user experience
+
+No exposure of:
+
+Wallet addresses
+
+Seeds
+
+Blockchain jargon
+
+UX Requirements
+
+Clear security indicators:
+
+“Verified by Singpass”
+
+“Secured on XRPL”
+
+Real-time status messaging:
+
+“Verifying Identity…”
+
+“Processing Payment…”
+
+“Minting Secure Ticket…”
+
+Dynamic QR codes for ticket redemption
+
+Professional, government-grade aesthetic
+
+9. Backend Architecture Rules
+
+Keep responsibilities separated:
+
+authService.js → Identity & NRIC mapping
+
+stripeService.js → Payments & webhooks
+
+xrplService.js → Wallets & NFT logic
+
+Routes must be thin; logic lives in services.
+
+Treat DB updates + XRPL transactions as atomic.
+
+Handle XRPL tec* errors explicitly and translate them into user-safe messages.
+
+10. What VeriTix Is NOT
+
+❌ Not a DeFi app
+
+❌ Not a user-owned wallet system
+
+❌ Not an open NFT marketplace
+
+❌ Not crypto-first
+
+VeriTix is a regulated, identity-bound ticketing system that uses blockchain as infrastructure, not as a product.
+
+provide in md formatting give me in a file
