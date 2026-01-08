@@ -90,7 +90,7 @@ export default function SignupPage() {
       if (next) {
         setLocation(decodeURIComponent(next));
       } else {
-        setLocation("/");
+        setLocation("/verified");
       }
     } catch (err: any) {
       const errorMessage = err.message || "Failed to create account. Please try again.";

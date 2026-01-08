@@ -14,7 +14,7 @@ export default function LoginPage() {
       next = params.get("next");
     } catch (e) {}
 
-    const target = next ? `/verified?next=${encodeURIComponent(next)}` : "/verified";
+    const target = next ? `/verified?next=${encodeURIComponent(next)}` : "/signup";
     setLocation(target);
   };
 

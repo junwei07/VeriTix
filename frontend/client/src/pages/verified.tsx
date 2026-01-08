@@ -21,7 +21,7 @@ export default function VerifiedPage() {
     if (next) {
       setLocation(`/signup?next=${encodeURIComponent(next)}`);
     } else {
-      setLocation("/signup");
+      setLocation("/create-wallet");
     }
   };
 
