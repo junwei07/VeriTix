@@ -20,7 +20,7 @@ export const MOCK_EVENTS: Event[] = [
     location: "Marina Bay Sands Event Plaza",
     date: "2026-05-22T19:00:00.000Z",
     price: 15900, // 159.00 SGD
-    imageUrl: "https://images.unsplash.com/photo-1459749411177-042180ce673c?auto=format&fit=crop&q=80&w=1000",
+    imageUrl: "https://images.unsplash.com/photo-1665597704311-d7304eaf70ac?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8d2ViM3xlbnwwfHwwfHx8MA%3D%3D",
     availableTickets: 120,
     totalTickets: 2500,
     createdAt: new Date().toISOString(),
