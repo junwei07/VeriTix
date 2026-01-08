@@ -2,7 +2,7 @@ const xrpl = require("xrpl");
 
 // XRPL Testnet public websocket endpoint
 const XRPL_TESTNET_WSS =
-  process.env.XRPL_NETWORK_URL || "wss://s.altnet.rippletest.net:51233";
+  "wss://s.altnet.rippletest.net:51233";
 
 let _client = null;
 

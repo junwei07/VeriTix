@@ -1,6 +1,7 @@
 {
   "type": "module",
   "dependencies": {
+    "dotenv": "^17.2.3",
     "xrpl": "^4.5.0"
   }
 }

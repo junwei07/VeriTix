@@ -1,6 +1,6 @@
 import xrpl from "xrpl";
 
-const client = new xrpl.Client("wss://s.altnet.rippletest.net:51233");
+export const client = new xrpl.Client("wss://s.altnet.rippletest.net:51233");
 
 async function main() {
   // 1. we connect to a node

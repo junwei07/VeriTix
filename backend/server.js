@@ -1,11 +1,12 @@
 // server.js - main backend entry point
-const express = require('express');
-require('dotenv').config(); // Load .env variables
-const path = require('path');
+const express = require("express");
+require("dotenv").config(); // Load .env variables
+const path = require("path");
 
 // Import your route files
-const authRoutes = require('./src/routes/authRoutes');
-const ticketRoutes = require('./src/routes/ticketRoutes');
+const authRoutes = require("./src/routes/authRoutes");
+const ticketRoutes = require("./src/routes/ticketRoutes");
+const walletRoutes = require("./src/routes/walletRoutes");
 
 const app = express(); // Create Express app, backend server
 
@@ -16,23 +17,24 @@ app.use(express.json());
 // app.use(express.static(path.join(__dirname, '../frontend/build')));
 
 // Mount routes
-app.use('/api/auth', authRoutes);
-app.use('/api/tickets', ticketRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/tickets", ticketRoutes);
+app.use("/api/wallets", walletRoutes);
 
 // Default route to check server status
-app.get('/', (req, res) => {
-  res.send('VeriTix Backend is running!');
+app.get("/", (req, res) => {
+  res.send("VeriTix Backend is running!");
 });
 
 // Handle 404
 app.use((req, res, next) => {
-  res.status(404).json({ message: 'Route not found' });
+  res.status(404).json({ message: "Route not found" });
 });
 
 // Global error handler (optional but useful)
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ message: 'Internal Server Error' });
+  res.status(500).json({ message: "Internal Server Error" });
 });
 
 // Start server
