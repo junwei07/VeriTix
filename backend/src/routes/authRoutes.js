@@ -1,8 +1,4 @@
 const express = require('express');
-
-const { issueNonce } = require('../controllers/authController');
-
-// Wallet auth endpoints for nonce issuance.
 const router = express.Router();
 const { createWallet } = require('../services/xrplService');
 
@@ -37,6 +33,37 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     console.error("Login Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+/**
+ * @route   GET /api/auth/user
+ * @desc    Get user info by NRIC (from query parameter)
+ */
+router.get('/user', async (req, res) => {
+  try {
+    const nric = req.query.nric;
+
+    if (!nric) {
+      return res.status(400).json({ message: "NRIC is required" });
+    }
+
+    // Check if user exists in our mock DB
+    if (!users[nric]) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Return user without seed (never expose seed in API responses)
+    res.status(200).json({
+      nric: users[nric].nric,
+      walletAddress: users[nric].walletAddress,
+    });
+  } catch (error) {
+    console.error("Get User Error:", error);
+    res.status(500).json({ 
+      message: "Internal Server Error",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

@@ -3,9 +3,14 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Loader2, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MOCK_EVENTS, MOCK_LISTINGS } from "@/lib/mock-data";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
+import { purchaseTicket } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { motion } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -13,12 +18,14 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog";
+
+type PaymentStatus = "idle" | "processing-payment" | "minting-ticket" | "success" | "error";
 
 export default function PaymentPage() {
   const [, setLocation] = useLocation();
-  const [user, setUser] = useState<string | null>(null);
+  const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const [method, setMethod] = useState("card");
   const [cardNumber, setCardNumber] = useState("");
   const [exp, setExp] = useState("");
@@ -31,16 +38,17 @@ export default function PaymentPage() {
   const [refId, setRefId] = useState<number | null>(null);
   const [amountCents, setAmountCents] = useState<number | null>(null);
   const [description, setDescription] = useState<string | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("idle");
+  const [nftData, setNftData] = useState<{ tokenId: string; txHash: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
+  // Redirect if not logged in
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("mock_user");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        setUser(parsed.username || null);
-      }
-    } catch (e) {}
-  }, []);
+    if (!isAuthenticated && user === null) {
+      const currentPath = window.location.pathname + window.location.search;
+      setLocation(`/login?next=${encodeURIComponent(currentPath)}`);
+    }
+  }, [isAuthenticated, user, setLocation]);
 
   useEffect(() => {
     try {
@@ -69,6 +77,90 @@ export default function PaymentPage() {
       }
     } catch (e) {}
   }, []);
+
+  const handlePayment = async () => {
+    if (!user || !isAuthenticated) {
+      setError("Please login first");
+      return;
+    }
+
+    if (!refId || !itemType) {
+      setError("Invalid purchase item");
+      return;
+    }
+
+    setError(null);
+    setPaymentStatus("processing-payment");
+
+    try {
+      // Step 1: Mock Stripe Checkout (simulate payment processing)
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // Step 2: Mint NFT on XRPL
+      setPaymentStatus("minting-ticket");
+      
+      const ticketType = itemType === "event" 
+        ? `event_${refId}` 
+        : `listing_${refId}`;
+
+      const result = await purchaseTicket({
+        userAddress: user.walletAddress,
+        ticketType,
+      });
+
+      // Step 3: Store ticket in localStorage
+      const ticketRecord = {
+        tokenId: result.tokenId,
+        txHash: result.txHash,
+        ticketType,
+        eventId: itemType === "event" ? refId : undefined,
+        purchasedAt: new Date().toISOString(),
+        walletAddress: user.walletAddress,
+        orderId: `ORD-${Date.now().toString().slice(-6)}`,
+        description: description ?? "Ticket",
+        amountCents: amountCents ?? 0,
+      };
+
+      // Store in veritix_tickets
+      try {
+        const existing = localStorage.getItem("veritix_tickets");
+        const tickets = existing ? JSON.parse(existing) : [];
+        tickets.push(ticketRecord);
+        localStorage.setItem("veritix_tickets", JSON.stringify(tickets));
+        window.dispatchEvent(new CustomEvent("veritix_tickets_changed"));
+      } catch (e) {
+        console.error("Failed to save ticket to localStorage", e);
+      }
+
+      // Step 4: Success
+      setNftData({
+        tokenId: result.tokenId,
+        txHash: result.txHash,
+      });
+      setOrderId(ticketRecord.orderId);
+      setPaymentStatus("success");
+      setReceiptOpen(true);
+
+      toast({
+        title: "Ticket Purchased & Minted!",
+        description: `Your ticket has been secured on the XRP Ledger.`,
+      });
+
+    } catch (err: any) {
+      setPaymentStatus("error");
+      const errorMessage = err.message || "Failed to complete purchase. Please try again.";
+      setError(errorMessage);
+      toast({
+        title: "Purchase Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (!isAuthenticated || !user) {
+    return null; // Will redirect via useEffect
+  }
 
   return (
     <div className="min-h-screen flex items-start justify-center py-12 px-4">
@@ -146,7 +238,7 @@ export default function PaymentPage() {
           {/* Right: summary and actions */}
           <div>
             <div className="border rounded-lg p-4 mb-4">
-              <div className="text-sm text-muted-foreground">Hello {user ?? "guest"}</div>
+              <div className="text-sm text-muted-foreground">Hello {user?.nric ?? "guest"}</div>
               <div className="mt-4">
                 <div className="flex items-center justify-between">
                   <div className="text-sm">Total</div>
@@ -156,111 +248,126 @@ export default function PaymentPage() {
             </div>
 
             <div className="grid gap-3">
+              {/* Status Messages */}
+              {paymentStatus === "processing-payment" && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2 text-sm text-primary bg-primary/10 p-3 rounded-lg border border-primary/20"
+                >
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Processing Payment...</span>
+                </motion.div>
+              )}
+
+              {paymentStatus === "minting-ticket" && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2 text-sm text-primary bg-primary/10 p-3 rounded-lg border border-primary/20"
+                >
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Minting Secure Ticket on XRPL...</span>
+                </motion.div>
+              )}
+
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg border border-destructive/20"
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  <span>{error}</span>
+                </motion.div>
+              )}
+
               <Button
-                onClick={() => {
-                  // create a mock order id and open receipt modal
-                  const id = `ORD-${Date.now().toString().slice(-6)}`;
-                  setOrderId(id);
-                  setReceiptOpen(true);
-
-                  // persist mock purchase to localStorage for mock users
-                  try {
-                    const raw = localStorage.getItem("mock_user");
-                    if (raw) {
-                      const parsed = JSON.parse(raw);
-                      const username = parsed.username;
-                      const existing = localStorage.getItem("mock_user_nfts");
-                      const arr = existing ? JSON.parse(existing) : [];
-                        const newNft: any = {
-                          id: `NFT-${Date.now().toString().slice(-6)}`,
-                          owner: username,
-                          orderId: id,
-                          description: description ?? "Order",
-                          amountCents: amountCents ?? 10000,
-                          itemType: itemType,
-                          refId: refId,
-                          createdAt: new Date().toISOString(),
-                        };
-
-                        // If purchasing a listing, copy the ticket and image data into the owned NFT
-                        if (itemType === "listing" && refId !== null) {
-                          try {
-                            const rawListings = localStorage.getItem("mock_listings");
-                            const localListings = rawListings ? JSON.parse(rawListings) : [];
-                            // try to find in local listings first, otherwise from MOCK_LISTINGS
-                            let listing = localListings.find((l: any) => Number(l.id) === Number(refId));
-                            if (!listing) {
-                              listing = MOCK_LISTINGS.find((l) => Number(l.id) === Number(refId));
-                            }
-                            if (listing) {
-                              // attach ticket/event snapshot to the purchased NFT
-                              newNft.ticket = listing.ticket;
-                              if (!newNft.ticket.seat) {
-                                newNft.ticket.seat = listing.ticket?.seat || listing.ticket?.seat || undefined;
-                              }
-                              // also copy common imageUrl paths for compatibility
-                              newNft.imageUrl = listing.ticket?.imageUrl || listing.ticket?.event?.imageUrl || "";
-
-                              // remove listing from localStorage (if it was a user-created listing)
-                              if (rawListings) {
-                                const remaining = localListings.filter((l: any) => Number(l.id) !== Number(refId));
-                                localStorage.setItem("mock_listings", JSON.stringify(remaining));
-                                window.dispatchEvent(new Event("mock_listings_changed"));
-                              } else {
-                                // Listing came from built-in MOCK_LISTINGS — mark as removed so it won't show
-                                try {
-                                  const removedRaw = localStorage.getItem('mock_listings_removed');
-                                  const removed = removedRaw ? JSON.parse(removedRaw) : [];
-                                  if (!removed.includes(listing.id)) {
-                                    removed.push(listing.id);
-                                    localStorage.setItem('mock_listings_removed', JSON.stringify(removed));
-                                    window.dispatchEvent(new Event('mock_listings_changed'));
-                                  }
-                                } catch (e) {
-                                  // ignore
-                                }
-                              }
-                            }
-                          } catch (e) {
-                            // ignore listing-read errors
-                          }
-                        }
-
-                        arr.push(newNft);
-                      localStorage.setItem("mock_user_nfts", JSON.stringify(arr));
-                      // notify listeners
-                      window.dispatchEvent(new Event("mock_user_nfts_changed"));
-                    }
-                  } catch (e) {
-                    // ignore
-                  }
-                }}
+                onClick={handlePayment}
+                disabled={paymentStatus !== "idle" || !isAuthenticated}
+                className="w-full"
               >
-                Pay now
+                {paymentStatus === "processing-payment" ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing Payment...
+                  </>
+                ) : paymentStatus === "minting-ticket" ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Minting Ticket...
+                  </>
+                ) : (
+                  "Pay now"
+                )}
               </Button>
-              <Button variant="ghost" onClick={() => setLocation("/")}>Back to home</Button>
+              <Button variant="ghost" onClick={() => setLocation("/")} disabled={paymentStatus !== "idle"}>
+                Back to home
+              </Button>
             </div>
           </div>
         </div>
       </Card>
 
       <Dialog open={receiptOpen} onOpenChange={(open) => setReceiptOpen(open)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Payment successful</DialogTitle>
-            <DialogDescription>Your payment has been processed (mock).</DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              Payment Successful
+            </DialogTitle>
+            <DialogDescription>
+              Your ticket has been minted as a Soulbound NFT on the XRP Ledger.
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-3">
-            <div className="text-sm">Order ID: <span className="font-mono">{orderId}</span></div>
-            <div className="text-sm">Paid by: <span className="font-medium">{user ?? "guest"}</span></div>
-            <div className="text-sm">Item: <span className="font-medium">{description ?? "Order"}</span></div>
-            <div className="text-sm">Method: <span className="font-medium">{method === "card" ? "Credit Card" : "PayNow QR"}</span></div>
-            <div className="text-sm">Amount: <span className="font-semibold">S$ {(amountCents ? (amountCents/100).toFixed(2) : "100.00")}</span></div>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <div className="text-sm text-muted-foreground">Order ID</div>
+              <div className="font-mono text-sm">{orderId}</div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-sm text-muted-foreground">Item</div>
+              <div className="font-medium">{description ?? "Order"}</div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-sm text-muted-foreground">Amount</div>
+              <div className="font-semibold text-lg">S$ {(amountCents ? (amountCents/100).toFixed(2) : "100.00")}</div>
+            </div>
+
+            {nftData && (
+              <div className="border-t pt-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm text-primary">
+                  <Sparkles className="w-4 h-4" />
+                  <span className="font-medium">Ticket Secured on XRPL</span>
+                </div>
+                <div className="space-y-2 bg-zinc-900/50 p-3 rounded-lg">
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Token ID</div>
+                    <div className="font-mono text-xs break-all">{nftData.tokenId}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Transaction Hash</div>
+                    <div className="font-mono text-xs break-all">{nftData.txHash}</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
-            <div className="flex gap-2 w-full justify-end">
+            <div className="flex gap-2 w-full">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setReceiptOpen(false);
+                  setLocation("/my-tickets");
+                }}
+              >
+                View Tickets
+              </Button>
               <Button
                 onClick={() => {
                   setReceiptOpen(false);

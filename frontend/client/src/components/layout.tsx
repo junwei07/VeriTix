@@ -25,42 +25,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return location.startsWith(href);
   };
 
-  const [mockUser, setMockUser] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    try {
-      const raw = localStorage.getItem("mock_user");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        setMockUser(parsed.username || null);
-      }
-    } catch (e) {
-      setMockUser(null);
-    }
-    const onChange = () => {
-      try {
-        const raw = localStorage.getItem("mock_user");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          setMockUser(parsed.username || null);
-        } else {
-          setMockUser(null);
-        }
-      } catch (e) {
-        setMockUser(null);
-      }
-    };
-
-    window.addEventListener("mock_user_changed", onChange);
-    // also listen to storage events from other tabs
-    window.addEventListener("storage", onChange as any);
-    return () => {
-      window.removeEventListener("mock_user_changed", onChange);
-      window.removeEventListener("storage", onChange as any);
-    };
-  }, []);
-
-  const isLogged = isAuthenticated || !!mockUser;
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans text-foreground selection:bg-primary/30">
@@ -110,7 +74,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           {/* 3. Right Side Actions (Auth) */}
           <div className="flex items-center gap-4">
-            {isLogged ? (
+            {isAuthenticated ? (
               <Link href="/profile">
                 <Button size="sm" className="gap-2 rounded-full font-semibold shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_25px_rgba(34,197,94,0.5)] transition-shadow">
                   <User className="w-4 h-4" />
@@ -195,7 +159,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="space-y-6">
               <h4 className="text-sm font-bold uppercase tracking-widest text-white/50">Manage Identity</h4>
               <div className="space-y-4">
-                {isLogged ? (
+                {isAuthenticated ? (
                   <Link href="/profile">
                     <Button variant="outline" size="sm" className="w-full gap-2 rounded-lg border-white/10 hover:bg-white/5 justify-start">
                       <User className="w-4 h-4 text-primary" />

@@ -1,69 +1,248 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { api, buildUrl } from "@shared/routes";
 import { z } from "zod";
-import { MOCK_TICKETS } from "@/lib/mock-data";
+import { MOCK_EVENTS } from "@/lib/mock-data";
+import type { Ticket, Event } from "@shared/schema";
 
-// GET /api/tickets (List my tickets)
+interface StoredTicket {
+  tokenId: string;
+  txHash: string;
+  ticketType: string;
+  eventId?: number;
+  purchasedAt: string;
+  walletAddress: string;
+  orderId: string;
+  description: string;
+  amountCents: number;
+}
+
+// GET /api/tickets (List my tickets) - reads from localStorage
 export function useMyTickets() {
-  return useQuery({
-    queryKey: [api.tickets.list.path],
-    queryFn: async () => {
-      // Return mock tickets for display
-      return MOCK_TICKETS;
+  const [tickets, setTickets] = useState<(Ticket & { event: Event })[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-      /*
-      const res = await fetch(api.tickets.list.path, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch tickets");
-      return api.tickets.list.responses[200].parse(await res.json());
-      */
-    },
-  });
+  useEffect(() => {
+    const loadTickets = () => {
+      try {
+        const stored = localStorage.getItem("veritix_tickets");
+        if (!stored) {
+          setTickets([]);
+          setIsLoading(false);
+          return;
+        }
+
+        const storedTickets: StoredTicket[] = JSON.parse(stored);
+        
+        // Transform stored tickets to match Ticket schema
+        const transformedTickets = storedTickets.map((stored, index) => {
+          // Find event from MOCK_EVENTS if eventId exists
+          const event = stored.eventId 
+            ? MOCK_EVENTS.find(e => e.id === stored.eventId)
+            : null;
+
+          // If no event found, create a placeholder
+          const eventData: Event = event || {
+            id: stored.eventId || 0,
+            title: stored.description || "Unknown Event",
+            description: "Ticket purchased on VeriTix",
+            location: "TBA",
+            date: stored.purchasedAt,
+            price: stored.amountCents,
+            availableTickets: 0,
+            totalTickets: 0,
+          };
+
+          const ticket: Ticket & { event: Event } = {
+            id: index + 1, // Generate ID from index
+            userId: stored.walletAddress,
+            eventId: stored.eventId || 0,
+            event: eventData,
+            nftTokenId: stored.tokenId,
+            status: "active" as const,
+            seat: null,
+            purchasePrice: stored.amountCents,
+            purchaseDate: stored.purchasedAt,
+          };
+
+          return ticket;
+        });
+
+        setTickets(transformedTickets);
+      } catch (e) {
+        console.error("Failed to load tickets from localStorage", e);
+        setTickets([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTickets();
+
+    // Listen for ticket changes
+    const handleChange = () => loadTickets();
+    window.addEventListener("veritix_tickets_changed", handleChange);
+    window.addEventListener("storage", handleChange);
+
+    return () => {
+      window.removeEventListener("veritix_tickets_changed", handleChange);
+      window.removeEventListener("storage", handleChange);
+    };
+  }, []);
+
+  return {
+    data: tickets,
+    isLoading,
+    error: null,
+  };
 }
 
-// GET /api/tickets/:id (Get single ticket details)
+// GET /api/tickets/:id (Get single ticket details) - reads from localStorage
 export function useTicket(id: number) {
-  return useQuery({
-    queryKey: [api.tickets.get.path, id],
-    queryFn: async () => {
-      // Find in mock tickets
-      const ticket = MOCK_TICKETS.find(t => t.id === id);
-      if (ticket) return ticket;
+  const [ticket, setTicket] = useState<(Ticket & { event: Event }) | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-      const url = buildUrl(api.tickets.get.path, { id });
-      const res = await fetch(url, { credentials: "include" });
-      if (res.status === 404) return null;
-      const text = await res.text();
-      const data = text ? JSON.parse(text) : null;
-      if (!res.ok) {
-        const msg = data && (data.message || data.error) ? (data.message || data.error) : res.statusText;
-        throw new Error(msg || "Failed to fetch ticket");
+  useEffect(() => {
+    if (!id) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem("veritix_tickets");
+      if (!stored) {
+        setTicket(null);
+        setIsLoading(false);
+        return;
       }
-      if (!data) throw new Error("Empty response from server");
-      return api.tickets.get.responses[200].parse(data);
-    },
-    enabled: !!id,
-  });
+
+      const storedTickets: StoredTicket[] = JSON.parse(stored);
+      const storedTicket = storedTickets[id - 1]; // ID is 1-based index
+
+      if (!storedTicket) {
+        setTicket(null);
+        setIsLoading(false);
+        return;
+      }
+
+      // Find event from MOCK_EVENTS
+      const event = storedTicket.eventId 
+        ? MOCK_EVENTS.find(e => e.id === storedTicket.eventId)
+        : null;
+
+      const eventData: Event = event || {
+        id: storedTicket.eventId || 0,
+        title: storedTicket.description || "Unknown Event",
+        description: "Ticket purchased on VeriTix",
+        location: "TBA",
+        date: storedTicket.purchasedAt,
+        price: storedTicket.amountCents,
+        availableTickets: 0,
+        totalTickets: 0,
+      };
+
+      const transformedTicket: Ticket & { event: Event } = {
+        id,
+        userId: storedTicket.walletAddress,
+        eventId: storedTicket.eventId || 0,
+        event: eventData,
+        nftTokenId: storedTicket.tokenId,
+        status: "active" as const,
+        seat: null,
+        purchasePrice: storedTicket.amountCents,
+        purchaseDate: storedTicket.purchasedAt,
+      };
+
+      setTicket(transformedTicket);
+    } catch (e) {
+      console.error("Failed to load ticket from localStorage", e);
+      setTicket(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [id]);
+
+  return {
+    data: ticket,
+    isLoading,
+    error: null,
+  };
 }
 
-// GET /api/tickets/:id/qr (Dynamic QR Code Data - Polling)
+// GET /api/tickets/:id/qr (Dynamic QR Code Data - Mock for now)
 export function useTicketQR(id: number) {
-  return useQuery({
-    queryKey: [api.tickets.generateQR.path, id],
-    queryFn: async () => {
-      const url = buildUrl(api.tickets.generateQR.path, { id });
-      const res = await fetch(url, { credentials: "include" });
-      const text = await res.text();
-      const data = text ? JSON.parse(text) : null;
-      if (!res.ok) {
-        const msg = data && (data.message || data.error) ? (data.message || data.error) : res.statusText;
-        throw new Error(msg || "Failed to generate QR");
+  const [qrData, setQrData] = useState<{
+    signature: string;
+    timestamp: number;
+    walletAddress: string;
+    ticketId: number;
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem("veritix_tickets");
+      if (!stored) {
+        setIsLoading(false);
+        return;
       }
-      if (!data) throw new Error("Empty response from server");
-      return api.tickets.generateQR.responses[200].parse(data);
-    },
-    enabled: !!id,
-    refetchInterval: 30000, // Poll every 30 seconds for dynamic QR
-  });
+
+      const storedTickets: StoredTicket[] = JSON.parse(stored);
+      const storedTicket = storedTickets[id - 1];
+
+      if (storedTicket) {
+        // Generate mock QR data (in production, this would come from backend)
+        const qr = {
+          signature: `veritix_${storedTicket.tokenId.slice(0, 16)}_${Date.now()}`,
+          timestamp: Date.now(),
+          walletAddress: storedTicket.walletAddress,
+          ticketId: id,
+        };
+        setQrData(qr);
+      }
+    } catch (e) {
+      console.error("Failed to generate QR data", e);
+    } finally {
+      setIsLoading(false);
+    }
+
+    // Refresh QR every 30 seconds (mock dynamic QR)
+    const interval = setInterval(() => {
+      if (id) {
+        try {
+          const stored = localStorage.getItem("veritix_tickets");
+          if (stored) {
+            const storedTickets: StoredTicket[] = JSON.parse(stored);
+            const storedTicket = storedTickets[id - 1];
+            if (storedTicket) {
+              const qr = {
+                signature: `veritix_${storedTicket.tokenId.slice(0, 16)}_${Date.now()}`,
+                timestamp: Date.now(),
+                walletAddress: storedTicket.walletAddress,
+                ticketId: id,
+              };
+              setQrData(qr);
+            }
+          }
+        } catch (e) {
+          // Ignore
+        }
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [id]);
+
+  return {
+    data: qrData,
+    isLoading,
+    isRefetching: false,
+  };
 }
 
 // POST /api/tickets/purchase

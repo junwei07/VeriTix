@@ -24,37 +24,6 @@ export default function EventDetailPage() {
 
   const { data: event, isLoading: eventLoading } = useEvent(eventId);
   const { user, isAuthenticated } = useAuth();
-  const [mockUser, setMockUser] = useState<string | null>(null);
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("mock_user");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        setMockUser(parsed.username || null);
-      }
-    } catch (e) {
-      setMockUser(null);
-    }
-    const onChange = () => {
-      try {
-        const raw = localStorage.getItem("mock_user");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          setMockUser(parsed.username || null);
-        } else setMockUser(null);
-      } catch (e) {
-        setMockUser(null);
-      }
-    };
-    window.addEventListener("mock_user_changed", onChange);
-    window.addEventListener("storage", onChange as any);
-    return () => {
-      window.removeEventListener("mock_user_changed", onChange);
-      window.removeEventListener("storage", onChange as any);
-    };
-  }, []);
-
-  const isLogged = isAuthenticated || !!mockUser;
   const { toast } = useToast();
   const [purchaseOpen, setPurchaseOpen] = useState(false);
 
@@ -180,7 +149,7 @@ export default function EventDetailPage() {
               </div>
             </div>
 
-            {isLogged ? (
+            {isAuthenticated ? (
               <Dialog open={purchaseOpen} onOpenChange={setPurchaseOpen}>
                 <DialogTrigger asChild>
                   <Button className="w-full text-lg h-14 shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all">
