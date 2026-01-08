@@ -80,7 +80,6 @@ function persistTicket({
     localStorage.setItem("veritix_tickets", JSON.stringify(tickets));
     window.dispatchEvent(new CustomEvent("veritix_tickets_changed"));
   } catch {
-    // Best-effort storage for demo UX
   }
 }
 
@@ -125,7 +124,7 @@ export default function CreatWalletCard({
     const msg = args
       .map((a) => (typeof a === "string" ? a : safeStringify(a)))
       .join(" ");
-    setLogs((prev) => [...prev, { ts: Date.now(), level, msg }].slice(-400)); // keep last 400 lines
+    setLogs((prev) => [...prev, { ts: Date.now(), level, msg }].slice(-400)); 
   };
 
   const connectClient = async () => {
@@ -158,16 +157,13 @@ export default function CreatWalletCard({
       const client = await connectClient();
       if (cancelledRef.current) return;
 
-      // // Fund wallet
+      // Fund wallet
       setStatus("funding");
       appendLog("info", "Funding a fresh Testnet wallet (faucet)…");
       const fundResult = await client.fundWallet();
       const wallet = fundResult.wallet;
       appendLog("log", "Funded:", wallet.classicAddress);
       appendLog("log", "Starting balance:", fundResult.balance);
-
-      // // ❗ Don’t display wallet.seed in production UI
-      // // appendLog("warn", "Seed (debug only):", wallet.seed);
 
       setResult((r) => ({
         ...r,
@@ -241,13 +237,11 @@ export default function CreatWalletCard({
   };
 
   useEffect(() => {
-    // auto-start when component mounts (optional)
     runFlow();
     return () => {
       cancelledRef.current = true;
       cleanup();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const statusLabel = useMemo(() => {
