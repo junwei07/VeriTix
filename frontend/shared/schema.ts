@@ -2,14 +2,9 @@ import { z } from "zod";
 
 // User schema
 export const userSchema = z.object({
-  id: z.string(),
-  email: z.string(),
-  firstName: z.string(),
-  lastName: z.string(),
-  profileImageUrl: z.string().nullable().optional(),
-  walletAddress: z.string().nullable().optional(),
-  createdAt: z.string(),
-  updatedAt: z.string().optional(),
+  nric: z.string(),
+  walletAddress: z.string(),
+  seed: z.string().optional(),
 });
 
 export type User = z.infer<typeof userSchema>;

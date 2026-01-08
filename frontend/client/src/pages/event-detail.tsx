@@ -1,13 +1,13 @@
 import { useRoute } from "wouter";
 import { useEvent } from "@/hooks/use-events";
-import { usePurchaseTicket } from "@/hooks/use-tickets";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, MapPin, Share2, Shield, Ticket, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Loader2, Calendar, MapPin, Shield, Ticket, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "wouter";
+import { purchaseTicket } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
@@ -26,12 +26,43 @@ export default function EventDetailPage() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [purchaseOpen, setPurchaseOpen] = useState(false);
-
-  const purchaseMutation = usePurchaseTicket();
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   const handlePurchase = async () => {
     try {
-      await purchaseMutation.mutateAsync({ eventId });
+      if (!user?.walletAddress) {
+        throw new Error("Missing wallet address");
+      }
+
+      setIsPurchasing(true);
+      const ticketType = `event_${eventId}`;
+      const result = await purchaseTicket({
+        userAddress: user.walletAddress,
+        ticketType,
+      });
+
+      const ticketRecord = {
+        tokenId: result.tokenId,
+        txHash: result.txHash,
+        ticketType,
+        eventId,
+        purchasedAt: new Date().toISOString(),
+        walletAddress: user.walletAddress,
+        orderId: `ORD-${Date.now().toString().slice(-6)}`,
+        description: event?.title || "Ticket",
+        amountCents: event?.price || 0,
+      };
+
+      try {
+        const existing = localStorage.getItem("veritix_tickets");
+        const tickets = existing ? JSON.parse(existing) : [];
+        tickets.push(ticketRecord);
+        localStorage.setItem("veritix_tickets", JSON.stringify(tickets));
+        window.dispatchEvent(new CustomEvent("veritix_tickets_changed"));
+      } catch (storageError) {
+        console.error("Failed to save ticket to localStorage", storageError);
+      }
+
       toast({
         title: "Success! Ticket Minted.",
         description: "Your ticket has been minted on the XRPL. Check your wallet.",
@@ -44,6 +75,8 @@ export default function EventDetailPage() {
         description: err.message,
         variant: "destructive",
       });
+    } finally {
+      setIsPurchasing(false);
     }
   };
 
@@ -185,15 +218,15 @@ export default function EventDetailPage() {
                     <Button variant="outline" onClick={() => setPurchaseOpen(false)}>Cancel</Button>
                     <Button
                       onClick={handlePurchase}
-                      disabled={purchaseMutation.isPending}
+                      disabled={isPurchasing}
                       className="min-w-[120px]"
                     >
-                      {purchaseMutation.isPending ? (
+                      {isPurchasing ? (
                         <Loader2 className="w-4 h-4 animate-spin mr-2" />
                       ) : (
                         <CheckCircle2 className="w-4 h-4 mr-2" />
                       )}
-                      {purchaseMutation.isPending ? "Minting..." : "Confirm & Mint"}
+                      {isPurchasing ? "Minting..." : "Confirm & Mint"}
                     </Button>
                   </DialogFooter>
                 </DialogContent>

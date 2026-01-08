@@ -24,16 +24,24 @@ export default function ProfilePage() {
 
     const loadNfts = () => {
       try {
-        const arrRaw = localStorage.getItem("mock_user_nfts");
-        const arr = arrRaw ? JSON.parse(arrRaw) : [];
+        const legacyRaw = localStorage.getItem("mock_user_nfts");
+        const legacy = legacyRaw ? JSON.parse(legacyRaw) : [];
+        const ticketRaw = localStorage.getItem("veritix_tickets");
+        const tickets = ticketRaw ? JSON.parse(ticketRaw) : [];
+
         const owner =
-          (user && (user.email || `${user.firstName || ""} ${user.lastName || ""}`.trim())) ||
+          (user && user.walletAddress) ||
           (mockUser && (mockUser.username || mockUser.email));
-        if (owner) {
-          setNfts(arr.filter((x: any) => x.owner === owner));
-        } else {
-          setNfts([]);
-        }
+
+        const ownedTickets = owner
+          ? tickets.filter((x: any) => x.walletAddress === owner)
+          : [];
+
+        const legacyOwned = owner
+          ? legacy.filter((x: any) => x.owner === owner)
+          : [];
+
+        setNfts([...ownedTickets, ...legacyOwned]);
       } catch (e) {
         setNfts([]);
       }
@@ -43,9 +51,11 @@ export default function ProfilePage() {
 
     const onChange = () => loadNfts();
     window.addEventListener("mock_user_nfts_changed", onChange);
+    window.addEventListener("veritix_tickets_changed", onChange);
     window.addEventListener("storage", onChange as any);
     return () => {
       window.removeEventListener("mock_user_nfts_changed", onChange);
+      window.removeEventListener("veritix_tickets_changed", onChange);
       window.removeEventListener("storage", onChange as any);
     };
   }, [user, mockUser]);
@@ -68,7 +78,7 @@ export default function ProfilePage() {
     toast({ title: "Copied", description: "Address copied to clipboard" });
   };
 
-  const displayName = user ? [user.firstName, user.lastName].filter(Boolean).join(" ").trim() : (mockUser?.username || mockUser?.email || "Anonymous");
+  const displayName = user ? user.nric : (mockUser?.username || mockUser?.email || "Anonymous");
   const initials = displayName
     ? displayName.charAt(0).toUpperCase()
     : (effectiveUser.email ? effectiveUser.email.charAt(0).toUpperCase() : "A");
@@ -91,8 +101,8 @@ export default function ProfilePage() {
             {initials}
           </div>
           <div>
-            <h2 className="text-2xl font-bold">{displayName || effectiveUser.email || "Anonymous"}</h2>
-            <p className="text-muted-foreground">{effectiveUser.email || effectiveUser.username || "No email linked"}</p>
+            <h2 className="text-2xl font-bold">{displayName || "Anonymous"}</h2>
+            <p className="text-muted-foreground">{user?.walletAddress || effectiveUser.email || effectiveUser.username || "No wallet linked"}</p>
             <div className="flex items-center gap-2 mt-2 bg-emerald-500/10 px-3 py-1 rounded-full w-fit">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-xs font-medium text-emerald-400">Singpass Verified</span>

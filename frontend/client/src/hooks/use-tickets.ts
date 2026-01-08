@@ -249,11 +249,11 @@ export function useTicketQR(id: number) {
 export function usePurchaseTicket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ eventId }: { eventId: number }) => {
+    mutationFn: async ({ userAddress, ticketType }: { userAddress: string; ticketType: string }) => {
       const res = await fetch(api.tickets.purchase.path, {
         method: api.tickets.purchase.method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId }),
+        body: JSON.stringify({ userAddress, ticketType }),
         credentials: "include",
       });
       
@@ -264,7 +264,7 @@ export function usePurchaseTicket() {
         throw new Error(msg || "Failed to purchase ticket");
       }
       if (!data) throw new Error("Empty response from server");
-      return api.tickets.purchase.responses[201].parse(data);
+      return api.tickets.purchase.responses[200].parse(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.tickets.list.path] });
@@ -273,26 +273,27 @@ export function usePurchaseTicket() {
   });
 }
 
-// POST /api/tickets/transfer
+// Demo transfer (localStorage only)
 export function useTransferTicket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ ticketId, recipientUsername }: { ticketId: number, recipientUsername: string }) => {
-      const res = await fetch(api.tickets.transfer.path, {
-        method: api.tickets.transfer.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ticketId, recipientUsername }),
-        credentials: "include",
-      });
+    mutationFn: async ({ ticketId }: { ticketId: number, recipientUsername: string }) => {
+      try {
+        const stored = localStorage.getItem("veritix_tickets");
+        const tickets: StoredTicket[] = stored ? JSON.parse(stored) : [];
 
-      const text = await res.text();
-      const data = text ? JSON.parse(text) : null;
-      if (!res.ok) {
-        const msg = data && (data.message || data.error) ? (data.message || data.error) : res.statusText;
-        throw new Error(msg || "Failed to transfer ticket");
+        if (ticketId < 1 || ticketId > tickets.length) {
+          throw new Error("Ticket not found");
+        }
+
+        const updated = tickets.filter((_ticket, index) => index !== ticketId - 1);
+        localStorage.setItem("veritix_tickets", JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent("veritix_tickets_changed"));
+
+        return { success: true, newTicketId: ticketId };
+      } catch (error: any) {
+        throw new Error(error?.message || "Failed to transfer ticket");
       }
-      if (!data) throw new Error("Empty response from server");
-      return api.tickets.transfer.responses[200].parse(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.tickets.list.path] });
