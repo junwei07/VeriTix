@@ -165,28 +165,6 @@ export default function SignupPage() {
                 </motion.div>
               )}
 
-              {status === "authenticating" && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex items-center gap-2 text-sm text-primary bg-primary/10 p-3 rounded-lg"
-                >
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Verifying Identity...</span>
-                </motion.div>
-              )}
-
-              {status === "creating-account" && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex items-center gap-2 text-sm text-primary bg-primary/10 p-3 rounded-lg"
-                >
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Setting up your account...</span>
-                </motion.div>
-              )}
-
               <div className="flex flex-col gap-2 pt-2">
                 <Button
                   type="submit"
