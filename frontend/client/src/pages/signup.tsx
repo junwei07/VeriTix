@@ -7,17 +7,15 @@ import { useLocation } from "wouter";
 import { loginWithNRIC } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import { sanitizeNextPath } from "@/lib/auth-utils";
 
 export default function SignupPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   
   // read next param
-  let next: string | null = null;
-  try {
-    const params = new URLSearchParams(window.location.search);
-    next = params.get("next");
-  } catch (e) {}
+  const params = new URLSearchParams(window.location.search);
+  const next = sanitizeNextPath(params.get("next"));
   
   const [nric, setNric] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -31,11 +29,7 @@ export default function SignupPage() {
       if (stored) {
         const user = JSON.parse(stored);
         // If user exists, redirect them
-        if (next) {
-          setLocation(decodeURIComponent(next));
-        } else {
-          setLocation("/");
-        }
+        setLocation(next || "/");
       }
     } catch (e) {
       // Ignore
@@ -87,11 +81,7 @@ export default function SignupPage() {
       });
 
       // Navigate to the next target if provided, otherwise go home
-      if (next) {
-        setLocation(decodeURIComponent(next));
-      } else {
-        setLocation("/");
-      }
+      setLocation(next || "/");
     } catch (err: any) {
       const errorMessage = err.message || "Failed to create account. Please try again.";
       setError(errorMessage);

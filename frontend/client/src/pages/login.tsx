@@ -3,17 +3,27 @@ import { Card } from "@/components/ui/card";
 import { ShieldCheck, ArrowRight, UserCheck } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
+import { useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { sanitizeNextPath } from "@/lib/auth-utils";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (isAuthenticated) {
+      const params = new URLSearchParams(window.location.search);
+      const next = sanitizeNextPath(params.get("next"));
+      setLocation(next || "/");
+    }
+  }, [isAuthenticated, isLoading, setLocation]);
+
   const handleLogin = () => {
     // Read `next` from current URL and forward it to /verified
-    let next: string | null = null;
-    try {
-      const params = new URLSearchParams(window.location.search);
-      next = params.get("next");
-    } catch (e) {}
-
+    const params = new URLSearchParams(window.location.search);
+    const next = sanitizeNextPath(params.get("next"));
     const target = next ? `/verified?next=${encodeURIComponent(next)}` : "/verified";
     setLocation(target);
   };

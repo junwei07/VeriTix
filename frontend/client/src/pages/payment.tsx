@@ -24,7 +24,7 @@ type PaymentStatus = "idle" | "processing-payment" | "minting-ticket" | "success
 
 export default function PaymentPage() {
   const [, setLocation] = useLocation();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [method, setMethod] = useState("card");
   const [cardNumber, setCardNumber] = useState("");
@@ -44,11 +44,12 @@ export default function PaymentPage() {
   
   // Redirect if not logged in
   useEffect(() => {
+    if (isLoading) return;
     if (!isAuthenticated && user === null) {
       const currentPath = window.location.pathname + window.location.search;
       setLocation(`/login?next=${encodeURIComponent(currentPath)}`);
     }
-  }, [isAuthenticated, user, setLocation]);
+  }, [isAuthenticated, isLoading, user, setLocation]);
 
   useEffect(() => {
     try {
@@ -157,6 +158,10 @@ export default function PaymentPage() {
       });
     }
   };
+
+  if (isLoading) {
+    return null;
+  }
 
   if (!isAuthenticated || !user) {
     return null; // Will redirect via useEffect
