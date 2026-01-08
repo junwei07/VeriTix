@@ -13,7 +13,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: "/", label: "Home", icon: Home },
     { href: "/events", label: "Events", icon: Calendar },
     { href: "/marketplace", label: "Marketplace", icon: ShoppingBag },
-    { href: "/profile", label: "Profile", icon: User },
   ];
 
   // Helper to determine if a link is active (handles nested routes)
