@@ -10,6 +10,7 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const [mockUser, setMockUser] = useState<any | null>(null);
   const [nfts, setNfts] = useState<any[]>([]);
+    const [listingInProgress, setListingInProgress] = useState(false);
   const [tab, setTab] = useState<"details" | "nfts">("details");
 
   useEffect(() => {
@@ -100,37 +101,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Wallet Info */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-bold font-display flex items-center gap-2">
-          <Wallet className="w-5 h-5" /> XRPL Wallet
-        </h3>
-
-        <div className="bg-black/50 border border-white/10 rounded-2xl p-6 space-y-4">
-          <div>
-            <label className="text-xs text-muted-foreground uppercase tracking-wider">Wallet Address</label>
-            <div className="flex items-center gap-2 mt-1">
-              <code className="text-sm font-mono text-primary bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/20 flex-1 truncate">
-                {effectiveUser.walletAddress || "Generating wallet..."}
-              </code>
-              <Button size="icon" variant="ghost" onClick={() => effectiveUser.walletAddress && copyToClipboard(effectiveUser.walletAddress)}>
-                <Copy className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 pt-2">
-            <div className="bg-card p-4 rounded-xl border border-white/5">
-              <span className="text-xs text-muted-foreground">Network</span>
-              <p className="font-bold">Testnet</p>
-            </div>
-            <div className="bg-card p-4 rounded-xl border border-white/5">
-              <span className="text-xs text-muted-foreground">Balance</span>
-              <p className="font-bold">1,000 XRP</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* (Wallet removed per request) */}
 
       <div className="pt-4 flex justify-between items-center">
         <div className="flex gap-2">
@@ -171,6 +142,84 @@ export default function ProfilePage() {
                       <div className="text-xs text-muted-foreground">Order {n.orderId} • {new Date(n.createdAt).toLocaleString()}</div>
                     </div>
                     <div className="text-sm font-mono">{(n.amountCents/100).toFixed(2)} SGD</div>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={async () => {
+                        try {
+                          // Determine sale price from NFT data (in cents)
+                          const nftPriceCents = n.amountCents ?? n.purchasePrice ?? (n.price ? Math.round(n.price) : undefined);
+                          if (!nftPriceCents || nftPriceCents <= 0) {
+                            toast({ title: 'Cannot list', description: 'This NFT has no valid price to list', variant: 'destructive' });
+                            return;
+                          }
+
+                          // Confirmation popup
+                          const confirmMsg = `List "${n.description || 'NFT'}" for ${(nftPriceCents / 100).toFixed(2)} SGD on the marketplace?`;
+                          if (!window.confirm(confirmMsg)) return;
+
+                          setListingInProgress(true);
+
+                          // Load existing listings from localStorage
+                          const raw = localStorage.getItem('mock_listings');
+                          const existing = raw ? JSON.parse(raw) : [];
+                          const nextId = (existing.length > 0 ? Math.max(...existing.map((x: any) => x.id)) : 1000) + 1;
+                          const sellerName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : (mockUser?.username || mockUser?.email || 'Anonymous');
+
+                          // Ensure event image and fields are copied into the listing
+                          const ticketWithEvent = {
+                            ...n,
+                            id: nextId + 100,
+                            seat: n.seat || n.ticket?.seat || n.seat || undefined,
+                            event: n.event || {
+                              id: n.eventId || 0,
+                              title: n.description || 'NFT',
+                              description: n.description || '',
+                              location: n.location || 'Unknown',
+                              date: n.date || new Date().toISOString(),
+                              price: n.price || 0,
+                              imageUrl: n.imageUrl || n.image?.url || (n.event && n.event.imageUrl) || '',
+                              availableTickets: n.availableTickets || 0,
+                              totalTickets: n.totalTickets || 0,
+                              createdAt: n.createdAt || new Date().toISOString(),
+                            }
+                          };
+
+                          const listing = {
+                            id: nextId,
+                            ticket: ticketWithEvent,
+                            price: nftPriceCents,
+                            sellerName,
+                          };
+
+                          existing.push(listing);
+                          localStorage.setItem('mock_listings', JSON.stringify(existing));
+
+                          // Remove NFT from user's owned list
+                          const nftRaw = localStorage.getItem('mock_user_nfts');
+                          const nftArr = nftRaw ? JSON.parse(nftRaw) : [];
+                          const newArr = nftArr.filter((x: any) => x.id !== n.id);
+                          localStorage.setItem('mock_user_nfts', JSON.stringify(newArr));
+
+                          // Trigger update events and UI
+                          window.dispatchEvent(new Event('mock_listings_changed'));
+                          window.dispatchEvent(new Event('mock_user_nfts_changed'));
+                          toast({ title: 'Listing created', description: 'Your NFT is now listed on the marketplace' });
+                        } catch (e) {
+                          toast({ title: 'Listing failed', description: 'Could not list NFT', variant: 'destructive' });
+                        } finally {
+                          setListingInProgress(false);
+                        }
+                      }}
+                      disabled={listingInProgress}
+                    >
+                      Sell
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => { window.location.href = '/marketplace'; }}>
+                      View Marketplace
+                    </Button>
                   </div>
                 </div>
               ))}

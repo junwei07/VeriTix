@@ -171,16 +171,62 @@ export default function PaymentPage() {
                       const username = parsed.username;
                       const existing = localStorage.getItem("mock_user_nfts");
                       const arr = existing ? JSON.parse(existing) : [];
-                      arr.push({
-                        id: `NFT-${Date.now().toString().slice(-6)}`,
-                        owner: username,
-                        orderId: id,
-                        description: description ?? "Order",
-                        amountCents: amountCents ?? 10000,
-                        itemType: itemType,
-                        refId: refId,
-                        createdAt: new Date().toISOString(),
-                      });
+                        const newNft: any = {
+                          id: `NFT-${Date.now().toString().slice(-6)}`,
+                          owner: username,
+                          orderId: id,
+                          description: description ?? "Order",
+                          amountCents: amountCents ?? 10000,
+                          itemType: itemType,
+                          refId: refId,
+                          createdAt: new Date().toISOString(),
+                        };
+
+                        // If purchasing a listing, copy the ticket and image data into the owned NFT
+                        if (itemType === "listing" && refId !== null) {
+                          try {
+                            const rawListings = localStorage.getItem("mock_listings");
+                            const localListings = rawListings ? JSON.parse(rawListings) : [];
+                            // try to find in local listings first, otherwise from MOCK_LISTINGS
+                            let listing = localListings.find((l: any) => Number(l.id) === Number(refId));
+                            if (!listing) {
+                              listing = MOCK_LISTINGS.find((l) => Number(l.id) === Number(refId));
+                            }
+                            if (listing) {
+                              // attach ticket/event snapshot to the purchased NFT
+                              newNft.ticket = listing.ticket;
+                              if (!newNft.ticket.seat) {
+                                newNft.ticket.seat = listing.ticket?.seat || listing.ticket?.seat || undefined;
+                              }
+                              // also copy common imageUrl paths for compatibility
+                              newNft.imageUrl = listing.ticket?.imageUrl || listing.ticket?.event?.imageUrl || "";
+
+                              // remove listing from localStorage (if it was a user-created listing)
+                              if (rawListings) {
+                                const remaining = localListings.filter((l: any) => Number(l.id) !== Number(refId));
+                                localStorage.setItem("mock_listings", JSON.stringify(remaining));
+                                window.dispatchEvent(new Event("mock_listings_changed"));
+                              } else {
+                                // Listing came from built-in MOCK_LISTINGS — mark as removed so it won't show
+                                try {
+                                  const removedRaw = localStorage.getItem('mock_listings_removed');
+                                  const removed = removedRaw ? JSON.parse(removedRaw) : [];
+                                  if (!removed.includes(listing.id)) {
+                                    removed.push(listing.id);
+                                    localStorage.setItem('mock_listings_removed', JSON.stringify(removed));
+                                    window.dispatchEvent(new Event('mock_listings_changed'));
+                                  }
+                                } catch (e) {
+                                  // ignore
+                                }
+                              }
+                            }
+                          } catch (e) {
+                            // ignore listing-read errors
+                          }
+                        }
+
+                        arr.push(newNft);
                       localStorage.setItem("mock_user_nfts", JSON.stringify(arr));
                       // notify listeners
                       window.dispatchEvent(new Event("mock_user_nfts_changed"));

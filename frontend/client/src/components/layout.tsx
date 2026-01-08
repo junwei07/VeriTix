@@ -16,7 +16,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: "/", label: "Home", icon: Home },
     { href: "/events", label: "Events", icon: Calendar },
     { href: "/marketplace", label: "Marketplace", icon: ShoppingBag },
-    { href: "/my-tickets", label: "Wallet", icon: Ticket },
     { href: "/profile", label: "Identity", icon: User },
   ];
 
