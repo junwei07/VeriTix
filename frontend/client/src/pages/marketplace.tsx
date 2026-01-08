@@ -105,18 +105,26 @@ export default function MarketplacePage() {
     const matchPurchasedAt =
       ticket?.purchasedAt || ticket?.purchaseDate || ticket?.createdAt;
     const shouldRemove = (x: any) => {
-      if (matchTokenId && x.tokenId === matchTokenId) return true;
-      if (matchOrderId && x.orderId === matchOrderId) return true;
-      if (
-        matchWallet &&
-        matchPurchasedAt &&
-        x.walletAddress === matchWallet &&
-        (x.purchasedAt === matchPurchasedAt ||
-          x.purchaseDate === matchPurchasedAt ||
-          x.createdAt === matchPurchasedAt)
-      ) {
-        return true;
+      const candidateTokenId = x.tokenId || x.nftTokenId || x.nftokenId;
+
+      // PRIORITY 1: If both have tokenId, use ONLY tokenId (exclusive)
+      if (matchTokenId && candidateTokenId) {
+        return matchTokenId === candidateTokenId;
       }
+
+      // PRIORITY 2: Composite key (only if no tokenId on either side)
+      if (!matchTokenId && !candidateTokenId) {
+        if (matchWallet && matchPurchasedAt && x.walletAddress === matchWallet &&
+            (x.purchasedAt === matchPurchasedAt || x.purchaseDate === matchPurchasedAt || x.createdAt === matchPurchasedAt)) {
+          return true;
+        }
+      }
+
+      // PRIORITY 3: orderId (absolute last resort)
+      if (!matchTokenId && !candidateTokenId && matchOrderId) {
+        return x.orderId === matchOrderId;
+      }
+
       return false;
     };
 

@@ -415,17 +415,31 @@ export default function ProfilePage() {
                                         const matchWallet = n.walletAddress;
                                         const matchPurchasedAt = n.purchasedAt || n.purchaseDate || n.createdAt;
                                         const shouldRemove = (x: any) => {
-                                            if (matchTokenId && x.tokenId === matchTokenId) return true;
-                                            if (matchOrderId && x.orderId === matchOrderId) return true;
-                                            if (matchLegacyId !== undefined && x.id === matchLegacyId) return true;
-                                            if (
-                                                matchWallet &&
-                                                matchPurchasedAt &&
-                                                x.walletAddress === matchWallet &&
-                                                (x.purchasedAt === matchPurchasedAt || x.purchaseDate === matchPurchasedAt || x.createdAt === matchPurchasedAt)
-                                            ) {
-                                                return true;
+                                            const candidateTokenId = x.tokenId || x.nftTokenId || x.nftokenId;
+
+                                            // PRIORITY 1: If both have tokenId, use ONLY tokenId (exclusive)
+                                            if (matchTokenId && candidateTokenId) {
+                                                return matchTokenId === candidateTokenId;
                                             }
+
+                                            // PRIORITY 2: Legacy id (only if no tokenId on either side)
+                                            if (!matchTokenId && !candidateTokenId && matchLegacyId !== undefined) {
+                                                return x.id === matchLegacyId;
+                                            }
+
+                                            // PRIORITY 3: Composite key (only if no tokenId AND no legacy id)
+                                            if (!matchTokenId && !candidateTokenId && !matchLegacyId) {
+                                                if (matchWallet && matchPurchasedAt && x.walletAddress === matchWallet &&
+                                                    (x.purchasedAt === matchPurchasedAt || x.purchaseDate === matchPurchasedAt || x.createdAt === matchPurchasedAt)) {
+                                                    return true;
+                                                }
+                                            }
+
+                                            // PRIORITY 4: orderId (absolute last resort)
+                                            if (!matchTokenId && !candidateTokenId && !matchLegacyId && matchOrderId) {
+                                                return x.orderId === matchOrderId;
+                                            }
+
                                             return false;
                                         };
 
@@ -585,17 +599,31 @@ export default function ProfilePage() {
                   const matchWallet = n.walletAddress;
                   const matchPurchasedAt = n.purchasedAt || n.purchaseDate || n.createdAt;
                   const shouldRemove = (x: any) => {
-                    if (matchTokenId && x.tokenId === matchTokenId) return true;
-                    if (matchOrderId && x.orderId === matchOrderId) return true;
-                    if (matchLegacyId !== undefined && x.id === matchLegacyId) return true;
-                    if (
-                      matchWallet &&
-                      matchPurchasedAt &&
-                      x.walletAddress === matchWallet &&
-                      (x.purchasedAt === matchPurchasedAt || x.purchaseDate === matchPurchasedAt || x.createdAt === matchPurchasedAt)
-                    ) {
-                      return true;
+                    const candidateTokenId = x.tokenId || x.nftTokenId || x.nftokenId;
+
+                    // PRIORITY 1: If both have tokenId, use ONLY tokenId (exclusive)
+                    if (matchTokenId && candidateTokenId) {
+                      return matchTokenId === candidateTokenId;
                     }
+
+                    // PRIORITY 2: Legacy id (only if no tokenId on either side)
+                    if (!matchTokenId && !candidateTokenId && matchLegacyId !== undefined) {
+                      return x.id === matchLegacyId;
+                    }
+
+                    // PRIORITY 3: Composite key (only if no tokenId AND no legacy id)
+                    if (!matchTokenId && !candidateTokenId && !matchLegacyId) {
+                      if (matchWallet && matchPurchasedAt && x.walletAddress === matchWallet &&
+                          (x.purchasedAt === matchPurchasedAt || x.purchaseDate === matchPurchasedAt || x.createdAt === matchPurchasedAt)) {
+                        return true;
+                      }
+                    }
+
+                    // PRIORITY 4: orderId (absolute last resort)
+                    if (!matchTokenId && !candidateTokenId && !matchLegacyId && matchOrderId) {
+                      return x.orderId === matchOrderId;
+                    }
+
                     return false;
                   };
 
