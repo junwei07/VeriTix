@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { Client } from "xrpl";
 import mintTicketNFT from "@/xrp/test-mint-nft";
 import ListNftsAndOffers from "@/xrp/test-list-nfts";
@@ -52,6 +53,35 @@ async function copyToClipboard(value: string) {
 function getExplorerLink(txHash?: string) {
   if (!txHash) return "#";
   return `https://testnet.xrpl.org/transactions/${txHash}`;
+}
+
+function persistTicket({
+  walletAddress,
+  tokenId,
+  txHash,
+}: {
+  walletAddress: string;
+  tokenId: string;
+  txHash?: string;
+}) {
+  try {
+    const existing = localStorage.getItem("veritix_tickets");
+    const tickets = existing ? JSON.parse(existing) : [];
+    tickets.push({
+      tokenId,
+      txHash: txHash || "",
+      ticketType: "minted_ticket",
+      purchasedAt: new Date().toISOString(),
+      walletAddress,
+      orderId: `ORD-${Date.now().toString().slice(-6)}`,
+      description: "Minted Ticket",
+      amountCents: 0,
+    });
+    localStorage.setItem("veritix_tickets", JSON.stringify(tickets));
+    window.dispatchEvent(new CustomEvent("veritix_tickets_changed"));
+  } catch {
+    // Best-effort storage for demo UX
+  }
 }
 
 export default function CreatWalletCard({
@@ -161,7 +191,8 @@ export default function CreatWalletCard({
       appendLog("log", mintRes);
 
       const owner = mintRes?.result?.tx_json?.Account;
-      const nftId = mintRes?.result?.meta?.nftoken_id;
+      const nftId =
+        mintRes?.result?.meta?.nftoken_id ?? `pending:${Date.now()}`;
       const txHash = mintRes?.result?.hash;
 
       setResult((r) => ({ ...r, owner, nftId, txHash, mintRes }));
@@ -190,6 +221,12 @@ export default function CreatWalletCard({
       // const listRes = await ListNftsAndOffers(client, wallet.classicAddress);
       // appendLog("log", "List result:", listRes);
       // setResult((r) => ({ ...r, listRes }));
+
+      persistTicket({
+        walletAddress: wallet.classicAddress,
+        tokenId: nftId,
+        txHash,
+      });
 
       setStatus("done");
       appendLog("info", "All steps complete ✅");
@@ -247,22 +284,7 @@ export default function CreatWalletCard({
 
   const handleBackOrView = () => {
     if (status === "done") {
-      let next: string | null = null;
-      try {
-        const params = new URLSearchParams(window.location.search);
-        next = params.get("next");
-      } catch (e) {}
-
-      const nftId = result.nftId;
-      const owner = result.owner;
-
-      const target = nftId
-        ? `/new-nft?nftId=${encodeURIComponent(nftId)}&owner=${encodeURIComponent(
-            owner ?? ""
-          )}`
-        : next
-        ? `/verified?next=${encodeURIComponent(next)}`
-        : "/my-tickets";
+      const target = "/profile";
 
       setLocation(target);
 
@@ -315,6 +337,17 @@ export default function CreatWalletCard({
                 )}
               </div>
             </div>
+
+            {status !== "done" && status !== "error" && (
+              <div className="mt-6 flex items-center gap-3 rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white/80">
+                <Loader2 className="h-4 w-4 animate-spin text-emerald-200" />
+                <div className="flex-1">
+                  {status === "minting"
+                    ? "Securing your ticket on XRPL…"
+                    : "Preparing your verified ticket…"}
+                </div>
+              </div>
+            )}
 
             <div className="mt-6 grid gap-4 rounded-xl border border-white/10 bg-black/30 p-4 text-sm text-white/85">
               <div className="flex flex-wrap items-center gap-2">

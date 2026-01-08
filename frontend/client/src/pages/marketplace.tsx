@@ -11,7 +11,9 @@ import { format } from "date-fns";
 
 export default function MarketplacePage() {
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<"recent" | "price-low" | "price-high">("recent");
+  const [sortBy, setSortBy] = useState<"recent" | "price">("recent");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [recentDirection, setRecentDirection] = useState<"asc" | "desc">("desc");
   const [userListings, setUserListings] = useState<any[]>([]);
   const [removedListings, setRemovedListings] = useState<number[]>([]);
 
@@ -54,12 +56,22 @@ export default function MarketplacePage() {
       );
     })
     .sort((a, b) => {
-      if (sortBy === "price-low") return a.price - b.price;
-      if (sortBy === "price-high") return b.price - a.price;
-      return 0;
+      if (sortBy === "price") {
+        return sortDirection === "asc" ? a.price - b.price : b.price - a.price;
+      }
+      const aTime = new Date(a?.ticket?.event?.date ?? a?.ticket?.date ?? 0).getTime();
+      const bTime = new Date(b?.ticket?.event?.date ?? b?.ticket?.date ?? 0).getTime();
+      return recentDirection === "asc" ? aTime - bTime : bTime - aTime;
     });
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+
+  const getInitials = (value: string) => {
+    const cleaned = value.replace(/[^a-zA-Z0-9 ]/g, "").trim();
+    if (!cleaned) return "VT";
+    const parts = cleaned.split(/\s+/).slice(0, 2);
+    return parts.map((p) => p[0]).join("").toUpperCase();
+  };
 
   return (
     <div className="relative min-h-screen pb-20">
@@ -113,26 +125,38 @@ export default function MarketplacePage() {
               <Button 
                 variant={sortBy === "recent" ? "secondary" : "ghost"} 
                 size="sm" 
-                className="rounded-lg text-[10px] md:text-xs h-8 px-2 md:px-3 whitespace-nowrap"
-                onClick={() => setSortBy("recent")}
+                className="rounded-lg text-[10px] md:text-xs h-8 px-2 md:px-3 whitespace-nowrap flex items-center gap-1"
+                onClick={() => {
+                  if (sortBy !== "recent") {
+                    setSortBy("recent");
+                    setRecentDirection("desc");
+                  } else {
+                    setRecentDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+                  }
+                }}
               >
                 Recent
+                <span className="text-[10px] md:text-xs">
+                  {recentDirection === "asc" ? "↑" : "↓"}
+                </span>
               </Button>
               <Button 
-                variant={sortBy === "price-low" ? "secondary" : "ghost"} 
+                variant={sortBy === "price" ? "secondary" : "ghost"} 
                 size="sm" 
-                className="rounded-lg text-[10px] md:text-xs h-8 px-2 md:px-3 whitespace-nowrap"
-                onClick={() => setSortBy("price-low")}
+                className="rounded-lg text-[10px] md:text-xs h-8 px-2 md:px-3 whitespace-nowrap flex items-center gap-1"
+                onClick={() => {
+                  if (sortBy !== "price") {
+                    setSortBy("price");
+                    setSortDirection("asc");
+                  } else {
+                    setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+                  }
+                }}
               >
-                Price ↑
-              </Button>
-              <Button 
-                variant={sortBy === "price-high" ? "secondary" : "ghost"} 
-                size="sm" 
-                className="rounded-lg text-[10px] md:text-xs h-8 px-2 md:px-3 whitespace-nowrap"
-                onClick={() => setSortBy("price-high")}
-              >
-                Price ↓
+                Price
+                <span className="text-[10px] md:text-xs">
+                  {sortDirection === "asc" ? "↑" : "↓"}
+                </span>
               </Button>
             </div>
           </div>
@@ -151,8 +175,10 @@ export default function MarketplacePage() {
           <div className="space-y-2">
             {filteredListings.map((listing, i) => {
               const ev = listing?.ticket?.event ?? listing?.ticket ?? { title: 'Unknown Event', imageUrl: '', date: new Date().toISOString() };
-              const seat = listing?.ticket?.seat ?? 'N/A';
-              const seller = listing?.sellerName ?? 'Anonymous';
+              const seat = listing?.ticket?.seat ?? 'General';
+              const sellerName = listing?.sellerName ?? 'Anonymous';
+              const currentUserLabels = [user?.nric, user?.walletAddress].filter(Boolean) as string[];
+              const seller = currentUserLabels.includes(sellerName) ? "You" : sellerName;
               const price = typeof listing?.price === 'number' ? listing.price : 0;
               return (
                 <motion.div
@@ -166,11 +192,17 @@ export default function MarketplacePage() {
                     {/* Event Info with Thumbnail */}
                     <div className="col-span-12 md:col-span-5 flex items-center gap-3 md:gap-4">
                       <div className="relative w-12 h-12 md:w-14 md:h-14 rounded-lg overflow-hidden flex-shrink-0 bg-white/5">
-                        <img
-                          src={ev.imageUrl || ""}
-                          alt={ev.title}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                        />
+                        {ev.imageUrl ? (
+                          <img
+                            src={ev.imageUrl}
+                            alt={ev.title}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-xs font-display text-emerald-200">
+                            {getInitials(ev.title)}
+                          </div>
+                        )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -208,7 +240,9 @@ export default function MarketplacePage() {
                       <div className="flex flex-col">
                         <p className="md:hidden text-[9px] text-muted-foreground uppercase tracking-tight mb-0.5">Seller</p>
                         <div className="flex items-center gap-1.5 justify-center md:justify-start">
-                          <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex-shrink-0" />
+                          <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex-shrink-0 flex items-center justify-center text-[9px] font-semibold text-white">
+                            {seller === "You" ? "Y" : getInitials(seller)}
+                          </div>
                           <span className="text-xs text-muted-foreground truncate">{seller}</span>
                         </div>
                       </div>

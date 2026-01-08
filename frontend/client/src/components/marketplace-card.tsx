@@ -4,10 +4,27 @@ import { motion } from "framer-motion";
 import { ShoppingCart, User, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/use-auth";
+
+function getInitials(value: string) {
+  const cleaned = value.replace(/[^a-zA-Z0-9 ]/g, "").trim();
+  if (!cleaned) return "VT";
+  const parts = cleaned.split(/\s+/).slice(0, 2);
+  const initials = parts.map((p) => p[0]).join("");
+  return initials.toUpperCase();
+}
 
 export function MarketplaceCard({ listing, index }: { listing: Listing; index: number }) {
   const { ticket, price, sellerName } = listing;
   const { event } = ticket;
+  const { user } = useAuth();
+  const currentUserLabels = [
+    user?.nric,
+    user?.walletAddress,
+  ].filter(Boolean) as string[];
+  const isCurrentUser = sellerName && currentUserLabels.includes(sellerName);
+  const displaySeller = isCurrentUser ? "You" : sellerName;
+  const hasImage = Boolean(event.imageUrl);
 
   return (
     <motion.div
@@ -19,11 +36,17 @@ export function MarketplaceCard({ listing, index }: { listing: Listing; index: n
       {/* Event Image Section */}
       <div className="relative h-40 w-full overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent z-10" />
-        <img
-          src={event.imageUrl || ""}
-          alt={event.title}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80"
-        />
+        {hasImage ? (
+          <img
+            src={event.imageUrl || ""}
+            alt={event.title}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-2xl font-display text-emerald-200">
+            {getInitials(event.title)}
+          </div>
+        )}
         <div className="absolute top-4 left-4 z-20">
           <Badge variant="secondary" className="backdrop-blur-md bg-black/40 border-white/10 text-white">
             <Ticket className="w-3 h-3 mr-1 text-emerald-400" />
@@ -57,7 +80,7 @@ export function MarketplaceCard({ listing, index }: { listing: Listing; index: n
              <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Seller</p>
              <div className="flex items-center gap-1.5 overflow-hidden">
                 <User className="w-3 h-3 text-primary/70 shrink-0" />
-                <p className="font-medium text-white truncate text-xs">{sellerName}</p>
+                <p className="font-medium text-white truncate text-xs">{displaySeller}</p>
              </div>
           </div>
         </div>

@@ -11,8 +11,9 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const [mockUser, setMockUser] = useState<any | null>(null);
   const [nfts, setNfts] = useState<any[]>([]);
+  const [pendingNfts, setPendingNfts] = useState<any[]>([]);
   const [listingInProgress, setListingInProgress] = useState(false);
-  const tab: "nfts" = "nfts";
+  const [tab, setTab] = useState<"owned" | "pending">("owned");
 
   useEffect(() => {
     try {
@@ -29,6 +30,10 @@ export default function ProfilePage() {
         const legacy = legacyRaw ? JSON.parse(legacyRaw) : [];
         const ticketRaw = localStorage.getItem("veritix_tickets");
         const tickets = ticketRaw ? JSON.parse(ticketRaw) : [];
+        const pendingRaw = localStorage.getItem("veritix_tickets_pending");
+        const pendingTickets = pendingRaw ? JSON.parse(pendingRaw) : [];
+        const pendingLegacyRaw = localStorage.getItem("mock_user_nfts_pending");
+        const pendingLegacy = pendingLegacyRaw ? JSON.parse(pendingLegacyRaw) : [];
 
         const owner =
           (user && user.walletAddress) ||
@@ -42,9 +47,19 @@ export default function ProfilePage() {
           ? legacy.filter((x: any) => x.owner === owner)
           : [];
 
+        const ownedPending = owner
+          ? pendingTickets.filter((x: any) => x.walletAddress === owner)
+          : [];
+
+        const legacyPending = owner
+          ? pendingLegacy.filter((x: any) => x.owner === owner)
+          : [];
+
         setNfts([...ownedTickets, ...legacyOwned]);
+        setPendingNfts([...ownedPending, ...legacyPending]);
       } catch (e) {
         setNfts([]);
+        setPendingNfts([]);
       }
     };
 
@@ -53,10 +68,14 @@ export default function ProfilePage() {
     const onChange = () => loadNfts();
     window.addEventListener("mock_user_nfts_changed", onChange);
     window.addEventListener("veritix_tickets_changed", onChange);
+    window.addEventListener("veritix_tickets_pending_changed", onChange);
+    window.addEventListener("mock_user_nfts_pending_changed", onChange);
     window.addEventListener("storage", onChange as any);
     return () => {
       window.removeEventListener("mock_user_nfts_changed", onChange);
       window.removeEventListener("veritix_tickets_changed", onChange);
+      window.removeEventListener("veritix_tickets_pending_changed", onChange);
+      window.removeEventListener("mock_user_nfts_pending_changed", onChange);
       window.removeEventListener("storage", onChange as any);
     };
   }, [user, mockUser]);
@@ -134,7 +153,18 @@ export default function ProfilePage() {
 
       <div className="pt-4 flex justify-between items-center">
         <div className="flex gap-2">
-          <Button variant="default">My Tickets</Button>
+          <Button
+            variant={tab === "owned" ? "default" : "ghost"}
+            onClick={() => setTab("owned")}
+          >
+            My Tickets
+          </Button>
+          <Button
+            variant={tab === "pending" ? "default" : "ghost"}
+            onClick={() => setTab("pending")}
+          >
+            Pending Sale
+          </Button>
         </div>
         <div>
           {user ? (
@@ -159,8 +189,9 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {tab === "nfts" && (
+      {tab === "owned" && (
         <div className="mt-6 space-y-4">
+          <h2 className="text-xl font-semibold">My Tickets</h2>
           {nfts.length === 0 ? (
             <div className="text-center text-muted-foreground">
               You haven't purchased any NFTs yet.
@@ -327,16 +358,74 @@ export default function ProfilePage() {
                             JSON.stringify(existing)
                           );
 
-                          // Remove NFT from user's owned list
+                          const pendingTicket = {
+                            ...n,
+                            pendingListedAt: new Date().toISOString(),
+                          };
+
+                          if (n.walletAddress) {
+                            const pendingRaw = localStorage.getItem(
+                              "veritix_tickets_pending"
+                            );
+                            const pendingArr = pendingRaw
+                              ? JSON.parse(pendingRaw)
+                              : [];
+                            pendingArr.push(pendingTicket);
+                            localStorage.setItem(
+                              "veritix_tickets_pending",
+                              JSON.stringify(pendingArr)
+                            );
+                          } else {
+                            const pendingLegacyRaw = localStorage.getItem(
+                              "mock_user_nfts_pending"
+                            );
+                            const pendingLegacyArr = pendingLegacyRaw
+                              ? JSON.parse(pendingLegacyRaw)
+                              : [];
+                            pendingLegacyArr.push(pendingTicket);
+                            localStorage.setItem(
+                              "mock_user_nfts_pending",
+                              JSON.stringify(pendingLegacyArr)
+                            );
+                          }
+
+                          const matchTokenId = n.tokenId || n.nftTokenId || n.nftokenId;
+                          const matchOrderId = n.orderId;
+                          const matchLegacyId = n.id;
+                          const matchWallet = n.walletAddress;
+                          const matchPurchasedAt = n.purchasedAt || n.purchaseDate || n.createdAt;
+                          const shouldRemove = (x: any) => {
+                            if (matchTokenId && x.tokenId === matchTokenId) return true;
+                            if (matchOrderId && x.orderId === matchOrderId) return true;
+                            if (matchLegacyId !== undefined && x.id === matchLegacyId) return true;
+                            if (
+                              matchWallet &&
+                              matchPurchasedAt &&
+                              x.walletAddress === matchWallet &&
+                              (x.purchasedAt === matchPurchasedAt ||
+                                x.purchaseDate === matchPurchasedAt ||
+                                x.createdAt === matchPurchasedAt)
+                            ) {
+                              return true;
+                            }
+                            return false;
+                          };
+
+                          // Remove NFT from user's owned list (only the matching ticket)
                           const nftRaw = localStorage.getItem("mock_user_nfts");
                           const nftArr = nftRaw ? JSON.parse(nftRaw) : [];
-                          const newArr = nftArr.filter(
-                            (x: any) => x.id !== n.id
-                          );
-                          localStorage.setItem(
-                            "mock_user_nfts",
-                            JSON.stringify(newArr)
-                          );
+                          const newArr = nftArr.filter((x: any) => !shouldRemove(x));
+                          localStorage.setItem("mock_user_nfts", JSON.stringify(newArr));
+
+                          if (n.walletAddress) {
+                            const ownedRaw = localStorage.getItem("veritix_tickets");
+                            const ownedArr = ownedRaw ? JSON.parse(ownedRaw) : [];
+                            const ownedNext = ownedArr.filter((x: any) => !shouldRemove(x));
+                            localStorage.setItem(
+                              "veritix_tickets",
+                              JSON.stringify(ownedNext)
+                            );
+                          }
 
                           // Trigger update events and UI
                           window.dispatchEvent(
@@ -344,6 +433,15 @@ export default function ProfilePage() {
                           );
                           window.dispatchEvent(
                             new Event("mock_user_nfts_changed")
+                          );
+                          window.dispatchEvent(
+                            new Event("veritix_tickets_changed")
+                          );
+                          window.dispatchEvent(
+                            new Event("veritix_tickets_pending_changed")
+                          );
+                          window.dispatchEvent(
+                            new Event("mock_user_nfts_pending_changed")
                           );
                           toast({
                             title: "Listing created",
@@ -373,6 +471,92 @@ export default function ProfilePage() {
                         >
                           View Marketplace
                         </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "pending" && (
+        <div className="mt-6 space-y-4">
+          <h2 className="text-xl font-semibold">Pending Sale</h2>
+          {pendingNfts.length === 0 ? (
+            <div className="text-center text-muted-foreground">
+              You don't have any tickets pending sale.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {pendingNfts.map((n, index) => {
+                const title =
+                  n.description ||
+                  n.event?.title ||
+                  n.ticket?.event?.title ||
+                  "Ticket";
+                const dateValue = n.purchasedAt || n.purchaseDate || n.createdAt;
+                const location =
+                  n.event?.location || n.ticket?.event?.location || "TBA";
+                const priceCents =
+                  n.amountCents ?? n.purchasePrice ?? n.price ?? 0;
+                const tokenId = n.tokenId || n.nftTokenId || n.nftokenId;
+
+                return (
+                  <div
+                    key={`${n.id ?? "pending"}-${index}`}
+                    className="relative overflow-hidden border border-white/10 rounded-2xl bg-card/80 p-5 shadow-xl"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-primary/10" />
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="space-y-2">
+                          <div className="text-xs uppercase tracking-[0.2em] text-amber-300/80">
+                            Pending Sale
+                          </div>
+                          <div className="text-xl font-bold font-display">
+                            {title}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {dateValue
+                              ? new Date(dateValue).toLocaleString()
+                              : "Date TBA"}{" "}
+                            • {location}
+                          </div>
+                        </div>
+                        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-zinc-950/70 border border-amber-500/30 shadow-[0_0_25px_rgba(251,191,36,0.25)]">
+                          <span className="text-amber-200 text-sm font-semibold">
+                            Pending
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+                        <div className="rounded-lg bg-white/5 p-3">
+                          <div className="uppercase tracking-wide text-[10px]">
+                            Order
+                          </div>
+                          <div className="mt-1 font-mono text-sm text-white">
+                            {n.orderId || "N/A"}
+                          </div>
+                        </div>
+                        <div className="rounded-lg bg-white/5 p-3">
+                          <div className="uppercase tracking-wide text-[10px]">
+                            Price
+                          </div>
+                          <div className="mt-1 font-mono text-sm text-white">
+                            {(priceCents / 100).toFixed(2)} SGD
+                          </div>
+                        </div>
+                        <div className="rounded-lg bg-white/5 p-3 col-span-2">
+                          <div className="uppercase tracking-wide text-[10px]">
+                            Token ID
+                          </div>
+                          <div className="mt-1 font-mono text-[11px] text-white break-all">
+                            {tokenId || "Pending Mint"}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
