@@ -4,7 +4,9 @@ import { Calendar, MapPin, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 
-export function EventCard({ event }: { event: Event }) {
+import { cn } from "@/lib/utils";
+
+export function EventCard({ event, className }: { event: Event; className?: string }) {
   // Safe format date
   const eventDate = new Date(event.date);
 
@@ -12,7 +14,10 @@ export function EventCard({ event }: { event: Event }) {
     <Link href={`/events/${event.id}`}>
       <motion.div 
         whileHover={{ y: -5 }}
-        className="group relative overflow-hidden rounded-2xl bg-card border border-white/5 shadow-lg hover:shadow-[0_0_30px_rgba(34,197,94,0.1)] hover:border-primary/30 transition-all duration-300 cursor-pointer h-full flex flex-col"
+        className={cn(
+          "group relative overflow-hidden rounded-2xl bg-card border border-white/5 shadow-lg hover:shadow-[0_0_30px_rgba(34,197,94,0.1)] hover:border-primary/30 transition-all duration-300 cursor-pointer h-full flex flex-col",
+          className
+        )}
       >
         {/* Image / Placeholder */}
         <div className="h-48 w-full bg-zinc-900 relative overflow-hidden">

@@ -18,6 +18,7 @@ export const api = {
           firstName: z.string(),
           lastName: z.string(),
           profileImageUrl: z.string().nullable().optional(),
+          walletAddress: z.string().nullable().optional(),
           createdAt: z.string(),
           updatedAt: z.string().optional(),
         }).nullable(),

@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 
 const authRoutes = require('./routes/authRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
 const marketplaceRoutes = require('./routes/marketplaceRoutes');
 
@@ -12,12 +13,27 @@ dotenv.config();
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      req.rawBody = buf.toString('utf8');
+    },
+  })
+);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.get('/', (_req, res) => {
+  res.send('VeriTix Backend is running!');
+});
+
+app.post('/api/test', (req, res) => {
+  res.json({ message: 'Test successful', data: req.body });
+});
+
+app.use('/', paymentRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/marketplace', marketplaceRoutes);

@@ -5,7 +5,11 @@ import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background p-4">
+    <div className="relative min-h-screen w-full flex items-center justify-center p-4">
+      {/* Fixed Background Gradients */}
+      <div className="fixed inset-0 -z-10 pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-destructive/10 blur-[120px]" />
+      </div>
       <Card className="w-full max-w-md mx-4 glass-card border-white/10">
         <CardContent className="pt-6">
           <div className="flex mb-4 gap-2">
