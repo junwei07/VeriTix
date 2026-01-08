@@ -2,6 +2,7 @@
   "include": ["client/src/**/*", "shared/**/*"],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
+    "allowJs": true,
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
     "noEmit": true,
@@ -19,5 +20,6 @@
       "@/*": ["./client/src/*"],
       "@shared/*": ["./shared/*"]
     }
+    
   }
 }
