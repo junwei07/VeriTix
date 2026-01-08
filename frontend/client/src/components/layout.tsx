@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation } from "wouter";
-import { Ticket, Home, User, LogIn, ShoppingBag, Calendar, Sparkles } from "lucide-react";
+import { Ticket, Home, User, LogIn, ShoppingBag, Calendar, Sparkles, Github } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -139,38 +139,100 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* =======================
           DESKTOP FOOTER
           ======================= */}
-      <footer className="hidden md:block border-t border-white/5 bg-card/30 backdrop-blur-sm">
-        <div className="container mx-auto px-6 py-10 max-w-7xl">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
-            <div className="col-span-1 md:col-span-2 space-y-4">
+      <footer className="hidden md:block border-t border-white/5 bg-card/20 backdrop-blur-md relative z-10">
+        <div className="container mx-auto px-6 pt-16 pb-8 max-w-7xl">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            
+            {/* Column 1: Brand & Mission */}
+            <div className="col-span-1 md:col-span-1 space-y-6">
               <div className="flex items-center gap-3">
-                 <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-black font-bold font-display text-xl shadow-[0_0_15px_rgba(34,197,94,0.3)]">V</div>
-                 <span className="font-display font-bold text-lg tracking-tight text-white">VeriTix</span>
+                <div className="relative w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center text-black font-bold font-display text-xl shadow-[0_0_20px_rgba(34,197,94,0.3)]">
+                  V
+                </div>
+                <span className="font-display font-bold text-xl tracking-tight text-white">VeriTix</span>
               </div>
-              <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-                The next generation of event ticketing. Secure, transparent, and verified on the XRP Ledger. Stop scalping, start experiencing.
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                The anti-scalp ticketing platform powered by blockchain identity. 
+                Verified on the XRP Ledger.
               </p>
-                      {isLogged ? (
-                         <Link href="/profile">
-                           <Button size="sm" className="gap-2 rounded-full font-semibold shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_25px_rgba(34,197,94,0.5)] transition-shadow">
-                             <User className="w-4 h-4" />
-                             <span className="hidden sm:inline">View profile</span>
-                           </Button>
-                         </Link>
-                      ) : (
-                        <Link href="/login">
-                          <Button size="sm" className="gap-2 rounded-full font-semibold shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_25px_rgba(34,197,94,0.5)] transition-shadow">
-                            <LogIn className="w-4 h-4" />
-                            <span className="hidden sm:inline">Singpass</span> Login
-                          </Button>
-                        </Link>
-                      )}
+              <div className="flex items-center gap-4">
+                <a href="#" className="p-2 rounded-full bg-white/5 hover:bg-primary/20 hover:text-primary transition-all group">
+                  <Github className="w-4 h-4 transition-transform group-hover:scale-110" />
+                </a>
+                <a href="#" className="p-2 rounded-full bg-white/5 hover:bg-primary/20 hover:text-primary transition-all group">
+                  <Sparkles className="w-4 h-4 transition-transform group-hover:scale-110" />
+                </a>
+              </div>
             </div>
+
+            {/* Column 2: Quick Links */}
+            <div className="space-y-6">
+              <h4 className="text-sm font-bold uppercase tracking-widest text-white/50">Explore</h4>
+              <ul className="space-y-3 text-sm">
+                {navItems.map((item) => (
+                  <li key={item.href}>
+                    <Link href={item.href} className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
+                      <item.icon className="w-3 h-3" />
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Column 3: Platform */}
+            <div className="space-y-6">
+              <h4 className="text-sm font-bold uppercase tracking-widest text-white/50">Platform</h4>
+              <ul className="space-y-3 text-sm">
+                <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Developer Docs</a></li>
+                <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">XRPL Explorer</a></li>
+                <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Terms of Service</a></li>
+                <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Privacy Policy</a></li>
+              </ul>
+            </div>
+
+            {/* Column 4: Account & Status */}
+            <div className="space-y-6">
+              <h4 className="text-sm font-bold uppercase tracking-widest text-white/50">Manage Identity</h4>
+              <div className="space-y-4">
+                {isLogged ? (
+                  <Link href="/profile">
+                    <Button variant="outline" size="sm" className="w-full gap-2 rounded-lg border-white/10 hover:bg-white/5 justify-start">
+                      <User className="w-4 h-4 text-primary" />
+                      User Dashboard
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link href="/login">
+                    <Button size="sm" className="w-full gap-2 rounded-lg font-semibold shadow-[0_0_15px_rgba(34,197,94,0.2)] justify-start">
+                      <LogIn className="w-4 h-4" />
+                      Connect via Singpass
+                    </Button>
+                  </Link>
+                )}
+                
+                <div className="pt-4 border-t border-white/5">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+                    <span className="text-xs font-medium text-muted-foreground">Network Status</span>
+                    <div className="flex items-center gap-2 text-[10px] text-emerald-400 font-mono">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      XRPL MAINNET
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Copyright Row */}
+          <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] text-muted-foreground uppercase tracking-widest">
+            <p>© 2026 VeriTix • Built for Singapore</p>
             <div className="flex items-center gap-6">
-               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                 <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                 Mainnet Beta
-               </div>
+              <span>Transparency Protocol v1.0.4</span>
+              <span className="text-white/20">|</span>
+              <span className="flex items-center gap-1.5">
+                Latency: <span className="text-emerald-500">24ms</span>
+              </span>
             </div>
           </div>
         </div>
