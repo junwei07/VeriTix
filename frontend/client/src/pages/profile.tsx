@@ -157,7 +157,7 @@ export default function ProfilePage() {
             variant={tab === "owned" ? "default" : "ghost"}
             onClick={() => setTab("owned")}
           >
-            My Tickets
+            Wallet
           </Button>
           <Button
             variant={tab === "pending" ? "default" : "ghost"}

@@ -65,12 +65,111 @@ export default function MarketplacePage() {
     });
 
   const { isAuthenticated, user } = useAuth();
+  const [mockUser] = useState(() => {
+    try {
+      const raw = localStorage.getItem("mock_user");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
 
   const getInitials = (value: string) => {
     const cleaned = value.replace(/[^a-zA-Z0-9 ]/g, "").trim();
     if (!cleaned) return "VT";
     const parts = cleaned.split(/\s+/).slice(0, 2);
     return parts.map((p) => p[0]).join("").toUpperCase();
+  };
+
+  const currentUserLabels = [
+    user?.nric,
+    user?.walletAddress,
+    mockUser?.username,
+    mockUser?.email,
+  ].filter(Boolean) as string[];
+
+  const isCurrentUserListing = (sellerName?: string) =>
+    !!sellerName && currentUserLabels.includes(sellerName);
+
+  const otherListings = filteredListings.filter(
+    (listing) => !isCurrentUserListing(listing?.sellerName)
+  );
+  const userListingsView = filteredListings.filter((listing) =>
+    isCurrentUserListing(listing?.sellerName)
+  );
+
+  const removeFromPending = (ticket: any) => {
+    const matchTokenId = ticket?.tokenId || ticket?.nftTokenId || ticket?.nftokenId;
+    const matchOrderId = ticket?.orderId;
+    const matchWallet = ticket?.walletAddress;
+    const matchPurchasedAt =
+      ticket?.purchasedAt || ticket?.purchaseDate || ticket?.createdAt;
+    const shouldRemove = (x: any) => {
+      if (matchTokenId && x.tokenId === matchTokenId) return true;
+      if (matchOrderId && x.orderId === matchOrderId) return true;
+      if (
+        matchWallet &&
+        matchPurchasedAt &&
+        x.walletAddress === matchWallet &&
+        (x.purchasedAt === matchPurchasedAt ||
+          x.purchaseDate === matchPurchasedAt ||
+          x.createdAt === matchPurchasedAt)
+      ) {
+        return true;
+      }
+      return false;
+    };
+
+    const pendingRaw = localStorage.getItem("veritix_tickets_pending");
+    const pendingArr = pendingRaw ? JSON.parse(pendingRaw) : [];
+    const pendingNext = pendingArr.filter((x: any) => !shouldRemove(x));
+    localStorage.setItem("veritix_tickets_pending", JSON.stringify(pendingNext));
+
+    const pendingLegacyRaw = localStorage.getItem("mock_user_nfts_pending");
+    const pendingLegacyArr = pendingLegacyRaw ? JSON.parse(pendingLegacyRaw) : [];
+    const pendingLegacyNext = pendingLegacyArr.filter((x: any) => !shouldRemove(x));
+    localStorage.setItem(
+      "mock_user_nfts_pending",
+      JSON.stringify(pendingLegacyNext)
+    );
+  };
+
+  const handleRemoveListing = (listing: any) => {
+    const ticket = listing?.ticket || {};
+
+    try {
+      const raw = localStorage.getItem("mock_listings");
+      const existing = raw ? JSON.parse(raw) : [];
+      const remaining = existing.filter((x: any) => x.id !== listing.id);
+      localStorage.setItem("mock_listings", JSON.stringify(remaining));
+
+      removeFromPending(ticket);
+
+      if (ticket.walletAddress || user?.walletAddress) {
+        const ownedRaw = localStorage.getItem("veritix_tickets");
+        const ownedArr = ownedRaw ? JSON.parse(ownedRaw) : [];
+        const restored = {
+          ...ticket,
+          walletAddress: ticket.walletAddress || user?.walletAddress,
+          restoredAt: new Date().toISOString(),
+        };
+        ownedArr.push(restored);
+        localStorage.setItem("veritix_tickets", JSON.stringify(ownedArr));
+        window.dispatchEvent(new Event("veritix_tickets_changed"));
+      } else {
+        const legacyRaw = localStorage.getItem("mock_user_nfts");
+        const legacyArr = legacyRaw ? JSON.parse(legacyRaw) : [];
+        legacyArr.push({ ...ticket, restoredAt: new Date().toISOString() });
+        localStorage.setItem("mock_user_nfts", JSON.stringify(legacyArr));
+        window.dispatchEvent(new Event("mock_user_nfts_changed"));
+      }
+
+      window.dispatchEvent(new Event("mock_listings_changed"));
+      window.dispatchEvent(new Event("veritix_tickets_pending_changed"));
+      window.dispatchEvent(new Event("mock_user_nfts_pending_changed"));
+    } catch {
+      // Ignore for demo
+    }
   };
 
   return (
@@ -173,12 +272,11 @@ export default function MarketplacePage() {
           </div>
 
           <div className="space-y-2">
-            {filteredListings.map((listing, i) => {
+            {otherListings.map((listing, i) => {
               const ev = listing?.ticket?.event ?? listing?.ticket ?? { title: 'Unknown Event', imageUrl: '', date: new Date().toISOString() };
               const seat = listing?.ticket?.seat ?? 'General';
               const sellerName = listing?.sellerName ?? 'Anonymous';
-              const currentUserLabels = [user?.nric, user?.walletAddress].filter(Boolean) as string[];
-              const seller = currentUserLabels.includes(sellerName) ? "You" : sellerName;
+              const seller = isCurrentUserListing(sellerName) ? "You" : sellerName;
               const price = typeof listing?.price === 'number' ? listing.price : 0;
               return (
                 <motion.div
@@ -283,7 +381,7 @@ export default function MarketplacePage() {
               );
             })}
 
-            {filteredListings.length === 0 && (
+            {otherListings.length === 0 && userListingsView.length === 0 && (
               <div className="text-center py-16 text-muted-foreground bg-card/20 rounded-xl border border-white/5">
                 <Ticket className="w-10 h-10 mx-auto mb-3 opacity-50" />
                 <p>{search ? 'No listings found matching your search.' : 'No tickets listed for resale at this time.'}</p>
@@ -291,6 +389,107 @@ export default function MarketplacePage() {
             )}
           </div>
         </section>
+
+        {userListingsView.length > 0 && (
+          <section className="space-y-3 pt-6">
+            <div className="px-4 py-2 text-xs text-muted-foreground uppercase tracking-wide border-b border-white/5">
+              Your Listings
+            </div>
+            <div className="space-y-2">
+              {userListingsView.map((listing, i) => {
+                const ev = listing?.ticket?.event ?? listing?.ticket ?? { title: 'Unknown Event', imageUrl: '', date: new Date().toISOString() };
+                const seat = listing?.ticket?.seat ?? 'General';
+                const sellerName = listing?.sellerName ?? 'Anonymous';
+                const seller = isCurrentUserListing(sellerName) ? "You" : sellerName;
+                const price = typeof listing?.price === 'number' ? listing.price : 0;
+                return (
+                  <motion.div
+                    key={listing.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: i * 0.03 }}
+                    className="group bg-card/40 hover:bg-card/60 backdrop-blur-sm border border-white/5 hover:border-white/10 rounded-xl p-3 md:p-4 transition-all duration-200"
+                  >
+                    <div className="grid grid-cols-12 gap-3 md:gap-4 items-center">
+                      <div className="col-span-12 md:col-span-5 flex items-center gap-3 md:gap-4">
+                        <div className="relative w-12 h-12 md:w-14 md:h-14 rounded-lg overflow-hidden flex-shrink-0 bg-white/5">
+                          {ev.imageUrl ? (
+                            <img
+                              src={ev.imageUrl}
+                              alt={ev.title}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-xs font-display text-emerald-200">
+                              {getInitials(ev.title)}
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <h3 className="font-semibold text-white truncate text-sm md:text-base group-hover:text-primary transition-colors">
+                              {ev.title}
+                            </h3>
+                            <Badge variant="outline" className="text-[8px] md:text-[10px] border-amber-500/30 text-amber-300 hidden xs:inline-flex">
+                              Your Listing
+                            </Badge>
+                          </div>
+                          <p className="text-[10px] md:text-xs text-muted-foreground truncate">
+                            {(() => {
+                              try {
+                                return format(new Date(ev.date), "MMM d, yyyy • h:mm a");
+                              } catch {
+                                return 'TBD';
+                              }
+                            })()}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="col-span-12 md:col-span-6 grid grid-cols-3 gap-2 items-center">
+                        <div className="flex flex-col">
+                          <p className="md:hidden text-[9px] text-muted-foreground uppercase tracking-tight mb-0.5">Seat</p>
+                          <p className="font-mono text-xs text-white bg-white/5 rounded-md px-1.5 py-1 text-center md:text-left md:bg-transparent md:px-0 md:py-0">
+                            {seat}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col">
+                          <p className="md:hidden text-[9px] text-muted-foreground uppercase tracking-tight mb-0.5">Seller</p>
+                          <div className="flex items-center gap-1.5 justify-center md:justify-start">
+                            <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex-shrink-0 flex items-center justify-center text-[9px] font-semibold text-white">
+                              {seller === "You" ? "Y" : getInitials(seller)}
+                            </div>
+                            <span className="text-xs text-muted-foreground truncate">{seller}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col md:text-right">
+                          <p className="md:hidden text-[9px] text-muted-foreground uppercase tracking-tight mb-0.5">Price</p>
+                          <p className="text-sm md:text-lg font-bold text-emerald-400 text-center md:text-right">
+                            ${(price / 100).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="col-span-12 md:col-span-1">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="w-full md:w-auto rounded-lg font-bold text-xs h-9 md:h-8 px-4"
+                          onClick={() => handleRemoveListing(listing)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
