@@ -14,6 +14,12 @@ const STRIPE_WEBHOOK_TOLERANCE_SEC = Number(
   process.env.STRIPE_WEBHOOK_TOLERANCE_SEC || 300
 );
 const STRIPE_CURRENCY = (process.env.STRIPE_CURRENCY || 'sgd').toLowerCase();
+const TICKET_TOKEN_STANDARD = (process.env.TICKET_TOKEN_STANDARD || 'mpt').toLowerCase();
+const MPT_REQUIRE_VERIFIED = process.env.MPT_REQUIRE_VERIFIED !== 'false';
+const MPT_REQUIRE_AUTH = process.env.MPT_REQUIRE_AUTH !== 'false';
+const MPT_METADATA_VAULT_ENABLED =
+  process.env.MPT_METADATA_VAULT_ENABLED === 'true';
+const MPT_DEFAULT_AMOUNT = process.env.MPT_DEFAULT_AMOUNT || '1';
 
 const parseStripeSignature = (header) => {
   const parts = header.split(',').map((part) => part.split('='));
@@ -82,6 +88,8 @@ const extractMetadata = (payload) => ({
   originalPriceXrp: payload.metadata?.originalPriceXrp,
   nftUri: payload.metadata?.nftUri,
   nftTaxon: payload.metadata?.nftTaxon,
+  mptMetadata: payload.metadata?.mptMetadata,
+  mptIssuanceId: payload.metadata?.mptIssuanceId,
 });
 
 const buildNftTokenId = ({ mintedId, fallback }) => {
@@ -93,6 +101,26 @@ const buildNftTokenId = ({ mintedId, fallback }) => {
   }
   return `pending:${Date.now()}`;
 };
+
+const buildMptIssuanceId = ({ issuedId, fallback, txHash }) => {
+  if (issuedId) {
+    return issuedId;
+  }
+  if (fallback) {
+    return fallback;
+  }
+  if (txHash) {
+    return `pending:${txHash}`;
+  }
+  return `pending:${Date.now()}`;
+};
+
+const buildTicketMetadata = ({ eventId, eventName, seat, priceDrops }) => ({
+  eventId,
+  eventName,
+  seat,
+  originalPriceDrops: priceDrops,
+});
 
 // Stripe webhook for primary sales and onboarding sponsorship.
 const handleStripeWebhook = asyncHandler(async (req, res) => {
@@ -124,6 +152,8 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
     originalPriceXrp,
     nftUri,
     nftTaxon,
+    mptMetadata,
+    mptIssuanceId: metadataIssuanceId,
   } = extractMetadata(payload);
 
   if (!wallet) {
@@ -168,17 +198,119 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
   let sponsorshipTxHash;
   let mintTxHash;
   let nftokenId;
+  let mptIssuanceId;
+  let mptAuthorizeTxHash;
+  let mptTransferTxHash;
+  let metadataVaultId;
 
   try {
-    const existingUser = await User.findOne({ wallet });
-    if (!existingUser) {
+    let user = await User.findOne({ wallet });
+    if (!user) {
       const sponsorship = await treasuryService.fundNewUser(wallet);
       sponsorshipTxHash = sponsorship.txHash;
-      await User.create({
+      user = await User.create({
         wallet,
         sponsoredAt: new Date(),
         sponsorshipTxHash,
       });
+    }
+
+    const treasuryWallet = treasuryService.getTreasuryWallet();
+    const ticketMetadata =
+      typeof mptMetadata === 'string'
+        ? (() => {
+            try {
+              return JSON.parse(mptMetadata);
+            } catch (_error) {
+              return buildTicketMetadata({
+                eventId,
+                eventName,
+                seat,
+                priceDrops,
+              });
+            }
+          })()
+        : mptMetadata ||
+          buildTicketMetadata({
+            eventId,
+            eventName,
+            seat,
+            priceDrops,
+          });
+
+    if (TICKET_TOKEN_STANDARD === 'mpt') {
+      if (MPT_REQUIRE_VERIFIED && user.verificationStatus !== 'verified') {
+        throw new HttpError(403, 'Wallet is not verified for MPT tickets');
+      }
+
+      const issuanceFlags = {
+        tfMPTCanClawback: true,
+        tfMPTCanTransfer: true,
+        tfMPTCanEscrow: true,
+        tfMPTRequireAuth: MPT_REQUIRE_AUTH,
+      };
+
+      const issuance = await treasuryService.createMptIssuance({
+        metadata: ticketMetadata,
+        maximumAmount: MPT_DEFAULT_AMOUNT,
+        assetScale: 0,
+        flags: issuanceFlags,
+      });
+
+      mptIssuanceId = buildMptIssuanceId({
+        issuedId: issuance.mptIssuanceId,
+        fallback: metadataIssuanceId,
+        txHash: issuance.txHash,
+      });
+
+      if (MPT_REQUIRE_AUTH) {
+        const authorizeResult = await treasuryService.authorizeMptHolder({
+          mptIssuanceId,
+          holder: wallet,
+          authorize: true,
+        });
+        mptAuthorizeTxHash = authorizeResult.txHash;
+      }
+
+      const transferResult = await treasuryService.sendMptToUser({
+        mptIssuanceId,
+        destination: wallet,
+        amount: MPT_DEFAULT_AMOUNT,
+        credentialIds: user.credentialId ? [user.credentialId] : undefined,
+      });
+      mptTransferTxHash = transferResult.txHash;
+
+      if (MPT_METADATA_VAULT_ENABLED) {
+        const vault = await treasuryService.createMetadataVault({
+          mptIssuanceId,
+          metadata: ticketMetadata,
+        });
+        metadataVaultId = vault.vaultId;
+      }
+
+      const ticket = await Ticket.create({
+        eventId,
+        eventName,
+        seat,
+        originalPriceDrops: priceDrops,
+        currentOwnerWallet: wallet,
+        issuerWallet: treasuryWallet.address,
+        tokenStandard: 'mpt',
+        mptIssuanceId,
+        mptAmount: MPT_DEFAULT_AMOUNT,
+        metadata: ticketMetadata,
+        metadataVaultId,
+      });
+
+      payment.status = 'processed';
+      payment.sponsorshipTxHash = sponsorshipTxHash;
+      payment.mptIssuanceId = mptIssuanceId;
+      payment.mptAuthorizeTxHash = mptAuthorizeTxHash;
+      payment.mptTransferTxHash = mptTransferTxHash;
+      payment.metadataVaultId = metadataVaultId;
+      payment.ticketId = ticket._id;
+      await payment.save();
+      return res.json({ received: true });
     }
 
     const mintResult = await treasuryService.mintNftToUser({
@@ -193,7 +325,6 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
       fallback: payload.metadata?.nftokenId,
     });
 
-    const treasuryWallet = treasuryService.getTreasuryWallet();
     const ticket = await Ticket.create({
       eventId,
       eventName,
@@ -201,7 +332,9 @@ const handleStripeWebhook = asyncHandler(async (req, res) => {
       originalPriceDrops: priceDrops,
       currentOwnerWallet: wallet,
       issuerWallet: treasuryWallet.address,
+      tokenStandard: 'nft',
       nftokenId,
+      metadata: ticketMetadata,
     });
 
     payment.status = 'processed';

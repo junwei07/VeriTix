@@ -28,6 +28,9 @@ const prepareListing = asyncHandler(async (req, res) => {
   if (!ticket) {
     throw new HttpError(404, 'Ticket not found');
   }
+  if (ticket.tokenStandard === 'mpt') {
+    throw new HttpError(400, 'MPT tickets must be listed via MPT marketplace');
+  }
   if (ticket.currentOwnerWallet !== sellerWallet) {
     throw new HttpError(403, 'sellerWallet does not own this ticket');
   }
@@ -69,6 +72,9 @@ const createListing = asyncHandler(async (req, res) => {
   const ticket = await Ticket.findById(ticketId);
   if (!ticket) {
     throw new HttpError(404, 'Ticket not found');
+  }
+  if (ticket.tokenStandard === 'mpt') {
+    throw new HttpError(400, 'MPT tickets must be listed via MPT marketplace');
   }
   if (ticket.currentOwnerWallet !== sellerWallet) {
     throw new HttpError(403, 'sellerWallet does not own this ticket');

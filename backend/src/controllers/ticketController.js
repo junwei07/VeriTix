@@ -13,17 +13,28 @@ const createTicket = asyncHandler(async (req, res) => {
     currentOwnerWallet,
     issuerWallet,
     nftokenId,
+    mptIssuanceId,
+    mptAmount,
+    tokenStandard = 'nft',
   } = req.body;
 
-  if (!eventId || !eventName || !originalPriceXrp || !currentOwnerWallet || !nftokenId) {
-    throw new HttpError(400, 'eventId, eventName, originalPriceXrp, currentOwnerWallet, and nftokenId are required');
+  if (!eventId || !eventName || !originalPriceXrp || !currentOwnerWallet) {
+    throw new HttpError(400, 'eventId, eventName, originalPriceXrp, and currentOwnerWallet are required');
+  }
+  if (tokenStandard === 'nft' && !nftokenId) {
+    throw new HttpError(400, 'nftokenId is required for nft tickets');
+  }
+  if (tokenStandard === 'mpt' && !mptIssuanceId) {
+    throw new HttpError(400, 'mptIssuanceId is required for mpt tickets');
   }
 
   const originalPriceDrops = toDrops(originalPriceXrp);
 
-  const existing = await Ticket.findOne({ nftokenId });
+  const existing = tokenStandard === 'mpt'
+    ? await Ticket.findOne({ mptIssuanceId })
+    : await Ticket.findOne({ nftokenId });
   if (existing) {
-    throw new HttpError(409, 'Ticket already exists for nftokenId');
+    throw new HttpError(409, 'Ticket already exists for token identifier');
   }
 
   const ticket = await Ticket.create({
@@ -33,7 +44,10 @@ const createTicket = asyncHandler(async (req, res) => {
     originalPriceDrops,
     currentOwnerWallet,
     issuerWallet,
+    tokenStandard,
     nftokenId,
+    mptIssuanceId,
+    mptAmount,
   });
 
   res.status(201).json(ticket);

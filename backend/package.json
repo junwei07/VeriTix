@@ -18,6 +18,8 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "mongoose": "^9.1.2",
+    "node-cron": "^4.2.1",
+    "stripe": "^20.1.2",
     "xrpl": "^4.5.0"
   },
   "devDependencies": {

@@ -5,8 +5,13 @@ const dotenv = require('dotenv');
 
 const authRoutes = require('./routes/authRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const complianceRoutes = require('./routes/complianceRoutes');
+const treasuryRoutes = require('./routes/treasuryRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
 const marketplaceRoutes = require('./routes/marketplaceRoutes');
+const mptMarketplaceRoutes = require('./routes/mptMarketplaceRoutes');
+const eventRoutes = require('./routes/eventRoutes');
+const refundRoutes = require('./routes/refundRoutes');
 
 dotenv.config();
 
@@ -34,8 +39,13 @@ app.post('/api/test', (req, res) => {
 });
 app.use('/', paymentRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/compliance', complianceRoutes);
+app.use('/api/treasury', treasuryRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/mpt-marketplace', mptMarketplaceRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/refunds', refundRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not found' });
@@ -55,6 +65,13 @@ mongoose
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
+
+      // Start refund monitor cron job if enabled
+      if (process.env.REFUND_MONITOR_ENABLED === 'true') {
+        const { startRefundMonitor } = require('./jobs/refundMonitor');
+        startRefundMonitor();
+        console.log('Refund monitor enabled');
+      }
     });
   })
   .catch((error) => {

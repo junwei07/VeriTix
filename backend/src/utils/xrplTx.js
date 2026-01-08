@@ -58,9 +58,65 @@ const assertNftAcceptOfferTx = (decoded, { buyerWallet, offerId }) => {
   }
 };
 
+const assertMptSellOfferTx = (
+  decoded,
+  { sellerWallet, mptIssuanceId, mptAmount, priceDrops }
+) => {
+  if (decoded.TransactionType !== 'OfferCreate') {
+    throw new Error('signedTx must be OfferCreate');
+  }
+  if (decoded.Account !== sellerWallet) {
+    throw new Error('signedTx Account does not match sellerWallet');
+  }
+  const takerGets = decoded.TakerGets;
+  if (!takerGets || typeof takerGets !== 'object') {
+    throw new Error('signedTx TakerGets must be MPT amount');
+  }
+  if (takerGets.mpt_issuance_id !== mptIssuanceId) {
+    throw new Error('signedTx MPT issuance does not match ticket');
+  }
+  if (String(takerGets.value) !== String(mptAmount)) {
+    throw new Error('signedTx MPT amount does not match ticket');
+  }
+  if (String(decoded.TakerPays) !== String(priceDrops)) {
+    throw new Error('signedTx TakerPays does not match listing price');
+  }
+  const flags = Number(decoded.Flags || 0);
+  if ((flags & xrpl.OfferCreateFlags.tfSell) === 0) {
+    throw new Error('signedTx must include tfSell flag');
+  }
+};
+
+const assertMptBuyOfferTx = (
+  decoded,
+  { buyerWallet, mptIssuanceId, mptAmount, priceDrops }
+) => {
+  if (decoded.TransactionType !== 'OfferCreate') {
+    throw new Error('signedTx must be OfferCreate');
+  }
+  if (decoded.Account !== buyerWallet) {
+    throw new Error('signedTx Account does not match buyerWallet');
+  }
+  if (String(decoded.TakerGets) !== String(priceDrops)) {
+    throw new Error('signedTx TakerGets does not match listing price');
+  }
+  const takerPays = decoded.TakerPays;
+  if (!takerPays || typeof takerPays !== 'object') {
+    throw new Error('signedTx TakerPays must be MPT amount');
+  }
+  if (takerPays.mpt_issuance_id !== mptIssuanceId) {
+    throw new Error('signedTx MPT issuance does not match listing');
+  }
+  if (String(takerPays.value) !== String(mptAmount)) {
+    throw new Error('signedTx MPT amount does not match listing');
+  }
+};
+
 module.exports = {
   assertNftAcceptOfferTx,
   assertNftCancelOfferTx,
   assertNftSellOfferTx,
+  assertMptBuyOfferTx,
+  assertMptSellOfferTx,
   decodeSignedTx,
 };
