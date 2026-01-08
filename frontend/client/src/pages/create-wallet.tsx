@@ -73,7 +73,7 @@ function persistTicket({
       ticketType: "minted_ticket",
       purchasedAt: new Date().toISOString(),
       walletAddress,
-      orderId: `ORD-${Date.now().toString().slice(-6)}`,
+      orderId: `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       description: "Minted Ticket",
       amountCents: 0,
     });

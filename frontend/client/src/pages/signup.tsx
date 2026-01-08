@@ -128,9 +128,9 @@ export default function SignupPage() {
             </motion.div>
 
             <div className="space-y-2">
-              <h2 className="text-3xl font-display font-bold">Create Account</h2>
+              <h2 className="text-3xl font-display font-bold">Continue</h2>
               <p className="text-muted-foreground text-sm">
-                Enter your NRIC to create your VeriTix account
+                Enter your NRIC to access or create your VeriTix account
               </p>
             </div>
 
@@ -165,28 +165,6 @@ export default function SignupPage() {
                 </motion.div>
               )}
 
-              {status === "authenticating" && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex items-center gap-2 text-sm text-primary bg-primary/10 p-3 rounded-lg"
-                >
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Verifying Identity...</span>
-                </motion.div>
-              )}
-
-              {status === "creating-account" && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex items-center gap-2 text-sm text-primary bg-primary/10 p-3 rounded-lg"
-                >
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Creating your account...</span>
-                </motion.div>
-              )}
-
               <div className="flex flex-col gap-2 pt-2">
                 <Button
                   type="submit"
@@ -197,10 +175,10 @@ export default function SignupPage() {
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      {status === "authenticating" ? "Verifying..." : "Creating Account..."}
+                      {status === "authenticating" ? "Verifying..." : "Setting up..."}
                     </>
                   ) : (
-                    "Create Account"
+                    "Continue"
                   )}
                 </Button>
                 <Button

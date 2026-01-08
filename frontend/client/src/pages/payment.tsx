@@ -117,7 +117,7 @@ export default function PaymentPage() {
         eventId: itemType === "event" ? refId : undefined,
         purchasedAt: new Date().toISOString(),
         walletAddress: user.walletAddress,
-        orderId: `ORD-${Date.now().toString().slice(-6)}`,
+        orderId: `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         description: description ?? "Ticket",
         amountCents: amountCents ?? 0,
       };
