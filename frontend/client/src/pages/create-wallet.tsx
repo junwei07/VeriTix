@@ -197,7 +197,7 @@ export default function CreatWalletCard({
       case "listing":
         return "Listing NFTs…";
       case "done":
-        return "Done";
+        return "Minted Ticket NFT";
       case "error":
         return "Error";
     }

@@ -3,18 +3,24 @@ import { Card } from "@/components/ui/card";
 import { ShieldCheck, ArrowRight, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
+import { useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { sanitizeNextPath } from "@/lib/auth-utils";
 
 export default function VerifiedPage() {
   const [, setLocation] = useLocation();
+  const { isAuthenticated, isLoading } = useAuth();
 
   // Read next param from URL to handle redirects properly
-  let next: string | null = null;
-  try {
-    const params = new URLSearchParams(window.location.search);
-    next = params.get("next");
-  } catch (e) {
-    console.error(e);
-  }
+  const params = new URLSearchParams(window.location.search);
+  const next = sanitizeNextPath(params.get("next"));
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (isAuthenticated) {
+      setLocation(next || "/create-wallet");
+    }
+  }, [isAuthenticated, isLoading, next, setLocation]);
 
   const handleContinue = () => {
     // If there is a 'next' param, pass it along to the signup page
@@ -84,7 +90,7 @@ export default function VerifiedPage() {
                 variant="ghost" 
                 size="sm" 
                 className="w-full text-muted-foreground hover:text-white" 
-                onClick={() => setLocation(next ? decodeURIComponent(next) : "/")}
+                onClick={() => setLocation(next || "/")}
               >
                 Return to Home
               </Button>
