@@ -398,124 +398,103 @@ export default function CreatWalletCard({
               </button>
 
               {auditOpen && (
-                <div className="mt-4 grid gap-3 text-xs text-white/80">
-                  <div className="rounded-lg border border-white/10 bg-black/40 p-3">
-                    <div className="uppercase tracking-wide text-white/50">
-                      Full Token ID
-                    </div>
-                    <div className="mt-1 font-mono break-all text-white/90">
-                      {result.nftId || "—"}
-                    </div>
-                  </div>
-
-                  <div className="rounded-lg border border-white/10 bg-black/40 p-3">
-                    <div className="uppercase tracking-wide text-white/50">
-                      Transaction Hash
-                    </div>
-                    <div className="mt-1 font-mono break-all text-white/90">
-                      {result.txHash || "—"}
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(result.txHash || "")}
-                        className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-white/80 hover:bg-white/10"
-                        disabled={!result.txHash}
-                      >
-                        Copy Tx Hash
-                      </button>
-                      {result.txHash ? (
-                        <a
-                          href={getExplorerLink(result.txHash)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-200 hover:bg-emerald-500/20"
-                        >
-                          View on XRPL Explorer
-                        </a>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {result.fundedAddress ? (
-                    <div className="rounded-lg border border-white/10 bg-black/40 p-3">
-                      <div className="uppercase tracking-wide text-white/50">
-                        Wallet Address
-                      </div>
-                      <div className="mt-1 font-mono break-all text-white/90">
-                        {result.fundedAddress}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(result.fundedAddress || "")}
-                        className="mt-2 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-white/80 hover:bg-white/10"
-                      >
-                        Copy Wallet
-                      </button>
-                    </div>
-                  ) : null}
-
-                  <div className="rounded-lg border border-white/10 bg-black/40 p-3">
-                    <button
-                      type="button"
-                      onClick={() => setRawOpen((prev) => !prev)}
-                      className="flex w-full items-center justify-between text-left text-[11px] font-semibold text-white/70"
-                    >
-                      <span>Live output & raw JSON</span>
-                      <span className="text-[10px] text-white/40">
-                        {rawOpen ? "Hide" : "Show"}
-                      </span>
-                    </button>
-
-                    {rawOpen && (
-                      <div className="mt-3 grid gap-3">
-                        <div className="h-44 overflow-auto rounded-lg border border-white/10 bg-black/50 p-3 font-mono text-[10px] text-white/80">
-                          {logs.length === 0 ? (
-                            <div className="text-white/40">
-                              Waiting for output…
-                            </div>
-                          ) : (
-                            logs.map((l, idx) => (
-                              <div
-                                key={idx}
-                                className="whitespace-pre-wrap break-words"
-                              >
-                                <span className="text-white/40">
-                                  {new Date(l.ts).toLocaleTimeString()}{" "}
-                                </span>
-                                <span
-                                  className={
-                                    l.level === "error"
-                                      ? "text-red-300"
-                                      : l.level === "warn"
-                                      ? "text-amber-200"
-                                      : l.level === "info"
-                                      ? "text-emerald-200"
-                                      : "text-white/80"
-                                  }
-                                >
-                                  {l.msg}
-                                </span>
-                              </div>
-                            ))
-                          )}
+                  // ✅ this is the important wrapper
+                  <div className="mt-4 max-h-[420px] overflow-y-auto overflow-x-hidden pr-1">
+                    <div className="grid min-w-0 gap-3 text-xs text-white/80">
+                      {/* Full Token ID */}
+                      <div className="rounded-lg border border-white/10 bg-black/40 p-3 min-w-0">
+                        <div className="uppercase tracking-wide text-white/50">Full Token ID</div>
+                        <div className="mt-1 min-w-0 font-mono break-all text-white/90">
+                          {result.nftId || "—"}
                         </div>
-
-                        {(result.mintRes || result.listRes) && (
-                          <div className="rounded-lg border border-white/10 bg-black/50 p-3 font-mono text-[10px] text-white/80">
-                            <div className="text-white/50 mb-2">
-                              Raw JSON
+                      </div>
+              
+                      {/* Transaction Hash */}
+                      <div className="rounded-lg border border-white/10 bg-black/40 p-3 min-w-0">
+                        <div className="uppercase tracking-wide text-white/50">Transaction Hash</div>
+                        <div className="mt-1 min-w-0 font-mono break-all text-white/90">
+                          {result.txHash || "—"}
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(result.txHash || "")}
+                            className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-white/80 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!result.txHash}
+                          >
+                            Copy Tx Hash
+                          </button>
+                          {result.txHash ? (
+                            <a
+                              href={getExplorerLink(result.txHash)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-200 hover:bg-emerald-500/20"
+                            >
+                              View on XRPL Explorer
+                            </a>
+                          ) : null}
+                        </div>
+                      </div>
+              
+                      {/* Wallet */}
+                      {result.fundedAddress ? (
+                        <div className="rounded-lg border border-white/10 bg-black/40 p-3 min-w-0">
+                          <div className="uppercase tracking-wide text-white/50">Wallet Address</div>
+                          <div className="mt-1 min-w-0 font-mono break-all text-white/90">
+                            {result.fundedAddress}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(result.fundedAddress || "")}
+                            className="mt-2 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-white/80 hover:bg-white/10"
+                          >
+                            Copy Wallet
+                          </button>
+                        </div>
+                      ) : null}
+              
+                      {/* Live output & raw JSON */}
+                      <div className="rounded-lg border border-white/10 bg-black/40 p-3 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => setRawOpen((prev) => !prev)}
+                          className="flex w-full items-center justify-between text-left text-[11px] font-semibold text-white/70"
+                        >
+                          <span>Live output & raw JSON</span>
+                          <span className="text-[10px] text-white/40">{rawOpen ? "Hide" : "Show"}</span>
+                        </button>
+              
+                        {rawOpen && (
+                          <div className="mt-3 grid min-w-0 gap-3">
+                            <div className="h-44 min-w-0 overflow-auto rounded-lg border border-white/10 bg-black/50 p-3 font-mono text-[10px] text-white/80">
+                              {logs.length === 0 ? (
+                                <div className="text-white/40">Waiting for output…</div>
+                              ) : (
+                                logs.map((l, idx) => (
+                                  <div key={idx} className="whitespace-pre-wrap break-words">
+                                    <span className="text-white/40">
+                                      {new Date(l.ts).toLocaleTimeString()}{" "}
+                                    </span>
+                                    <span>{l.msg}</span>
+                                  </div>
+                                ))
+                              )}
                             </div>
-                            <pre className="whitespace-pre-wrap break-words">
-                              {safeStringify({
-                                mintRes: result.mintRes,
-                                listRes: result.listRes,
-                              })}
-                            </pre>
+              
+                            {(result.mintRes || result.listRes) && (
+                              <div className="rounded-lg border border-white/10 bg-black/50 p-3 font-mono text-[10px] text-white/80 min-w-0">
+                                <div className="mb-2 text-white/50">Raw JSON</div>
+                                <div className="max-h-64 min-w-0 overflow-x-auto overflow-y-auto rounded-md">
+                                  <pre className="min-w-max whitespace-pre">
+                                    {safeStringify({ mintRes: result.mintRes, listRes: result.listRes })}
+                                  </pre>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
                   </div>
                 </div>
               )}
