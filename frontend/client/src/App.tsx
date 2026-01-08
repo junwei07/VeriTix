@@ -16,6 +16,7 @@ import TicketViewPage from "@/pages/ticket-view";
 import ProfilePage from "@/pages/profile";
 import MarketplacePage from "@/pages/marketplace";
 import EventsPage from "@/pages/events";
+import CreateWalletPage from "@/pages/create-wallet";
 
 function Router() {
   return (
@@ -25,6 +26,7 @@ function Router() {
         <Route path="/login" component={LoginPage} />
           <Route path="/verified" component={VerifiedPage} />
           <Route path="/signup" component={SignupPage} />
+          <Route path="/create-wallet" component={CreateWalletPage} />
           <Route path="/payment" component={PaymentPage} />
         <Route path="/events" component={EventsPage} />
         <Route path="/marketplace" component={MarketplacePage} />
