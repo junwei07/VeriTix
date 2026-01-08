@@ -1,7 +1,8 @@
-// Soulbonding Ticketing System according to NRIC
-// Handles user login and XRPL wallet creation
-
 const express = require('express');
+
+const { issueNonce } = require('../controllers/authController');
+
+// Wallet auth endpoints for nonce issuance.
 const router = express.Router();
 const { createWallet } = require('../services/xrplService');
 
@@ -32,7 +33,7 @@ router.post('/login', async (req, res) => {
       };
     }
 
-    res.status(200).json(users[nric]); // Return user info including wallet
+    res.status(200).json(users[nric]);
   } catch (error) {
     console.error("Login Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
