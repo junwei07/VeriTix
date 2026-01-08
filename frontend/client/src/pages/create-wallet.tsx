@@ -240,9 +240,9 @@ export default function CreatWalletCard({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-[32px] leading-tight font-semibold tracking-tight text-white">
-                  Creating your XRPL wallet...
+                  {statusLabel}
                 </h1>
-                <p className="mt-2 text-white/70">{statusLabel}</p>
+                {/* <p className="mt-2 text-white/70">{statusLabel}</p> */}
               </div>
 
               <div className="flex gap-2">
