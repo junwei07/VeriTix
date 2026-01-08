@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Calendar, MapPin, Share2, Shield, Ticket, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import {
   Dialog,
@@ -24,6 +24,37 @@ export default function EventDetailPage() {
 
   const { data: event, isLoading: eventLoading } = useEvent(eventId);
   const { user, isAuthenticated } = useAuth();
+  const [mockUser, setMockUser] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("mock_user");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setMockUser(parsed.username || null);
+      }
+    } catch (e) {
+      setMockUser(null);
+    }
+    const onChange = () => {
+      try {
+        const raw = localStorage.getItem("mock_user");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          setMockUser(parsed.username || null);
+        } else setMockUser(null);
+      } catch (e) {
+        setMockUser(null);
+      }
+    };
+    window.addEventListener("mock_user_changed", onChange);
+    window.addEventListener("storage", onChange as any);
+    return () => {
+      window.removeEventListener("mock_user_changed", onChange);
+      window.removeEventListener("storage", onChange as any);
+    };
+  }, []);
+
+  const isLogged = isAuthenticated || !!mockUser;
   const { toast } = useToast();
   const [purchaseOpen, setPurchaseOpen] = useState(false);
 
@@ -149,7 +180,7 @@ export default function EventDetailPage() {
               </div>
             </div>
 
-            {isAuthenticated ? (
+            {isLogged ? (
               <Dialog open={purchaseOpen} onOpenChange={setPurchaseOpen}>
                 <DialogTrigger asChild>
                   <Button className="w-full text-lg h-14 shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] transition-all">
@@ -199,7 +230,7 @@ export default function EventDetailPage() {
                 </DialogContent>
               </Dialog>
             ) : (
-              <Link href="/login">
+              <Link href={`/login?next=${encodeURIComponent(`/payment?eventId=${eventId}`)}`}>
                 <Button variant="secondary" className="w-full h-12">
                   Login to Buy
                 </Button>

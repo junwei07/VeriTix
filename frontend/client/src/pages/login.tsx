@@ -6,10 +6,16 @@ import { motion } from "framer-motion";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
-
   const handleLogin = () => {
-    // For the mock flow: navigate to the verified page instead of real auth
-    setLocation("/verified");
+    // Read `next` from current URL and forward it to /verified
+    let next: string | null = null;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      next = params.get("next");
+    } catch (e) {}
+
+    const target = next ? `/verified?next=${encodeURIComponent(next)}` : "/verified";
+    setLocation(target);
   };
 
   return (

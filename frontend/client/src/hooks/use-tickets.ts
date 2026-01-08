@@ -32,8 +32,14 @@ export function useTicket(id: number) {
       const url = buildUrl(api.tickets.get.path, { id });
       const res = await fetch(url, { credentials: "include" });
       if (res.status === 404) return null;
-      if (!res.ok) throw new Error("Failed to fetch ticket");
-      return api.tickets.get.responses[200].parse(await res.json());
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok) {
+        const msg = data && (data.message || data.error) ? (data.message || data.error) : res.statusText;
+        throw new Error(msg || "Failed to fetch ticket");
+      }
+      if (!data) throw new Error("Empty response from server");
+      return api.tickets.get.responses[200].parse(data);
     },
     enabled: !!id,
   });
@@ -46,8 +52,14 @@ export function useTicketQR(id: number) {
     queryFn: async () => {
       const url = buildUrl(api.tickets.generateQR.path, { id });
       const res = await fetch(url, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to generate QR");
-      return api.tickets.generateQR.responses[200].parse(await res.json());
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok) {
+        const msg = data && (data.message || data.error) ? (data.message || data.error) : res.statusText;
+        throw new Error(msg || "Failed to generate QR");
+      }
+      if (!data) throw new Error("Empty response from server");
+      return api.tickets.generateQR.responses[200].parse(data);
     },
     enabled: !!id,
     refetchInterval: 30000, // Poll every 30 seconds for dynamic QR
@@ -66,11 +78,14 @@ export function usePurchaseTicket() {
         credentials: "include",
       });
       
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to purchase ticket");
+        const msg = data && (data.message || data.error) ? (data.message || data.error) : res.statusText;
+        throw new Error(msg || "Failed to purchase ticket");
       }
-      return api.tickets.purchase.responses[201].parse(await res.json());
+      if (!data) throw new Error("Empty response from server");
+      return api.tickets.purchase.responses[201].parse(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.tickets.list.path] });
@@ -91,11 +106,14 @@ export function useTransferTicket() {
         credentials: "include",
       });
 
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to transfer ticket");
+        const msg = data && (data.message || data.error) ? (data.message || data.error) : res.statusText;
+        throw new Error(msg || "Failed to transfer ticket");
       }
-      return api.tickets.transfer.responses[200].parse(await res.json());
+      if (!data) throw new Error("Empty response from server");
+      return api.tickets.transfer.responses[200].parse(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.tickets.list.path] });

@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Link, useLocation } from "wouter";
 import { Ticket, Home, User, LogIn, ShoppingBag, Calendar, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -24,6 +25,43 @@ export function Layout({ children }: { children: React.ReactNode }) {
     if (href === "/") return location === "/";
     return location.startsWith(href);
   };
+
+  const [mockUser, setMockUser] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem("mock_user");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setMockUser(parsed.username || null);
+      }
+    } catch (e) {
+      setMockUser(null);
+    }
+    const onChange = () => {
+      try {
+        const raw = localStorage.getItem("mock_user");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          setMockUser(parsed.username || null);
+        } else {
+          setMockUser(null);
+        }
+      } catch (e) {
+        setMockUser(null);
+      }
+    };
+
+    window.addEventListener("mock_user_changed", onChange);
+    // also listen to storage events from other tabs
+    window.addEventListener("storage", onChange as any);
+    return () => {
+      window.removeEventListener("mock_user_changed", onChange);
+      window.removeEventListener("storage", onChange as any);
+    };
+  }, []);
+
+  const isLogged = isAuthenticated || !!mockUser;
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans text-foreground selection:bg-primary/30">
@@ -73,26 +111,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           {/* 3. Right Side Actions (Auth) */}
           <div className="flex items-center gap-4">
-            {isAuthenticated ? (
-               <div className="flex items-center gap-3 pl-4 border-l border-white/10">
-                 <div className="hidden sm:flex flex-col items-end">
-                   <span className="text-xs font-medium text-foreground">
-                     {displayName || user?.email || "Anonymous"}
-                   </span>
-                   <span className="text-[10px] text-primary flex items-center gap-1">
-                     <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                     Connected
-                   </span>
-                 </div>
-                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center shadow-inner">
-                    <User className="w-4 h-4 text-muted-foreground" />
-                 </div>
-               </div>
+            {isLogged ? (
+              <Link href="/profile">
+                <Button size="sm" className="gap-2 rounded-full font-semibold shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_25px_rgba(34,197,94,0.5)] transition-shadow">
+                  <User className="w-4 h-4" />
+                  <span className="hidden sm:inline">View profile</span>
+                </Button>
+              </Link>
             ) : (
               <Link href="/login">
                 <Button size="sm" className="gap-2 rounded-full font-semibold shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_25px_rgba(34,197,94,0.5)] transition-shadow">
                   <LogIn className="w-4 h-4" />
-                  <span className="hidden sm:inline">Singpass</span> Login
+                  <span className="hidden sm:inline">Sign in</span>
                 </Button>
               </Link>
             )}
@@ -121,31 +151,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
                 The next generation of event ticketing. Secure, transparent, and verified on the XRP Ledger. Stop scalping, start experiencing.
               </p>
+                      {isLogged ? (
+                         <Link href="/profile">
+                           <Button size="sm" className="gap-2 rounded-full font-semibold shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_25px_rgba(34,197,94,0.5)] transition-shadow">
+                             <User className="w-4 h-4" />
+                             <span className="hidden sm:inline">View profile</span>
+                           </Button>
+                         </Link>
+                      ) : (
+                        <Link href="/login">
+                          <Button size="sm" className="gap-2 rounded-full font-semibold shadow-[0_0_15px_rgba(34,197,94,0.3)] hover:shadow-[0_0_25px_rgba(34,197,94,0.5)] transition-shadow">
+                            <LogIn className="w-4 h-4" />
+                            <span className="hidden sm:inline">Singpass</span> Login
+                          </Button>
+                        </Link>
+                      )}
             </div>
-            
-            <div className="space-y-4">
-              <h4 className="text-xs uppercase tracking-widest font-bold text-white">Platform</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link href="/events" className="hover:text-primary transition-colors">Browse Events</Link></li>
-                <li><Link href="/marketplace" className="hover:text-primary transition-colors">Secondary Market</Link></li>
-                <li><Link href="/profile" className="hover:text-primary transition-colors">Verified Identity</Link></li>
-              </ul>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="text-xs uppercase tracking-widest font-bold text-white">Legal</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="hover:text-primary cursor-pointer transition-colors">Privacy Policy</li>
-                <li className="hover:text-primary cursor-pointer transition-colors">Terms of Service</li>
-                <li className="hover:text-primary cursor-pointer transition-colors">Cookie Policy</li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-xs text-muted-foreground font-mono">
-              © 2026 VeriTix Platform • Powered by XRPL
-            </p>
             <div className="flex items-center gap-6">
                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                  <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />

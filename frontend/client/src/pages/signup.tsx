@@ -6,6 +6,12 @@ import { useLocation } from "wouter";
 
 export default function SignupPage() {
   const [, setLocation] = useLocation();
+  // read next param
+  let next: string | null = null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    next = params.get("next");
+  } catch (e) {}
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -21,12 +27,20 @@ export default function SignupPage() {
     // Mock account creation: store in localStorage (for demo only)
     try {
       localStorage.setItem("mock_user", JSON.stringify({ username }));
+      // Notify other parts of the app that mock_user changed (same-window)
+      try {
+        window.dispatchEvent(new CustomEvent("mock_user_changed"));
+      } catch (e) {}
     } catch (e) {
       // ignore
     }
 
-    // Navigate to payment page
-    setLocation("/payment");
+    // Navigate to the next target if provided, otherwise go home (signup-only)
+    if (next) {
+      setLocation(decodeURIComponent(next));
+    } else {
+      setLocation("/");
+    }
   };
 
   return (

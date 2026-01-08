@@ -2,6 +2,8 @@ import { MOCK_LISTINGS } from "@/lib/mock-data";
 import { motion } from "framer-motion";
 import { Search, TrendingUp, BarChart3, Wallet, ArrowUpDown, Ticket, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Link } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +30,8 @@ export default function MarketplacePage() {
     { label: "Active Listings", value: "1,204", change: "+5.4%", icon: Wallet, color: "text-blue-400" },
     { label: "Traders (24h)", value: "328", change: "+8.2%", icon: User, color: "text-orange-400" },
   ];
+
+  const { isAuthenticated } = useAuth();
 
   return (
     <div className="relative min-h-screen pb-20">
@@ -221,12 +225,25 @@ export default function MarketplacePage() {
 
                   {/* Action */}
                   <div className="col-span-12 md:col-span-1">
-                    <Button 
-                      size="sm" 
-                      className="w-full md:w-auto rounded-lg bg-white text-black hover:bg-white/90 font-bold text-xs h-9 md:h-8 px-4"
-                    >
-                      Buy
-                    </Button>
+                    {isAuthenticated || (typeof window !== 'undefined' && !!(() => { try { const r = localStorage.getItem('mock_user'); return r ? JSON.parse(r).username : null } catch { return null } })()) ? (
+                      <Link href={`/payment?listingId=${listing.id}`}>
+                        <Button 
+                          size="sm" 
+                          className="w-full md:w-auto rounded-lg bg-white text-black hover:bg-white/90 font-bold text-xs h-9 md:h-8 px-4"
+                        >
+                          Buy
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Link href={`/login?next=${encodeURIComponent(`/payment?listingId=${listing.id}`)}`}>
+                        <Button 
+                          size="sm" 
+                          className="w-full md:w-auto rounded-lg bg-white text-black hover:bg-white/90 font-bold text-xs h-9 md:h-8 px-4"
+                        >
+                          Buy
+                        </Button>
+                      </Link>
+                    )}
                   </div>
                 </div>
               </motion.div>

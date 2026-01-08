@@ -6,6 +6,13 @@ import { useLocation } from "wouter";
 export default function VerifiedPage() {
   const [, setLocation] = useLocation();
 
+  // read next param from URL
+  let next: string | null = null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    next = params.get("next");
+  } catch (e) {}
+
   return (
     <div className="min-h-screen flex items-center justify-center py-20">
       <Card className="w-full max-w-md p-8 text-center">
@@ -17,10 +24,10 @@ export default function VerifiedPage() {
           <p className="text-sm text-muted-foreground">Singpass verification successful (mock).</p>
 
           <div className="w-full">
-            <Button size="lg" className="w-full mt-2" onClick={() => setLocation("/signup")}>
+            <Button size="lg" className="w-full mt-2" onClick={() => setLocation(next ? `/signup?next=${encodeURIComponent(next)}` : "/signup")}>
               Create account
             </Button>
-            <Button size="sm" variant="ghost" className="w-full mt-2" onClick={() => setLocation("/")}>
+            <Button size="sm" variant="ghost" className="w-full mt-2" onClick={() => setLocation(next ? decodeURIComponent(next) : "/")}>
               Back to home
             </Button>
           </div>
