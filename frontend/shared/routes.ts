@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eventSchema, ticketSchema, qrCodeSchema } from "./schema";
+import { eventSchema, ticketSchema, qrCodeSchema, userSchema } from "./schema";
 
 // Helper function to build URLs with parameters
 export function buildUrl(path: string, params: Record<string, any>): string {
@@ -12,23 +12,14 @@ export const api = {
     user: {
       path: "/api/auth/user",
       responses: {
-        200: z.object({
-          id: z.string(),
-          email: z.string(),
-          firstName: z.string(),
-          lastName: z.string(),
-          profileImageUrl: z.string().nullable().optional(),
-          walletAddress: z.string().nullable().optional(),
-          createdAt: z.string(),
-          updatedAt: z.string().optional(),
-        }).nullable(),
+        200: userSchema,
       },
     },
     logout: {
-      path: "/api/logout",
+      path: "/api/auth/logout",
     },
     login: {
-      path: "/api/login",
+      path: "/api/auth/login",
     },
   },
   events: {
@@ -68,10 +59,15 @@ export const api = {
       path: "/api/tickets/purchase",
       method: "POST",
       body: z.object({
-        eventId: z.number(),
+        userAddress: z.string(),
+        ticketType: z.string(),
       }),
       responses: {
-        201: ticketSchema,
+        200: z.object({
+          message: z.string(),
+          tokenId: z.string(),
+          txHash: z.string(),
+        }),
       },
     },
     transfer: {

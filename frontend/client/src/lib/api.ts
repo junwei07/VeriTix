@@ -85,8 +85,11 @@ export async function loginWithNRIC(nric: string) {
 /**
  * Get current user info
  */
-export async function getCurrentUser(nric?: string) {
-  const path = nric ? `/auth/user?nric=${encodeURIComponent(nric)}` : '/auth/user';
+export async function getCurrentUser(nric: string) {
+  if (!nric) {
+    throw new Error("NRIC is required");
+  }
+  const path = `/auth/user?nric=${encodeURIComponent(nric)}`;
   return apiGet<{
     nric: string;
     walletAddress: string;

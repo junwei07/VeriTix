@@ -67,4 +67,12 @@ router.get('/user', async (req, res) => {
   }
 });
 
+/**
+ * @route   POST /api/auth/logout
+ * @desc    Demo logout (stateless)
+ */
+router.post('/logout', (_req, res) => {
+  res.status(204).send();
+});
+
 module.exports = router;
