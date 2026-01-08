@@ -613,6 +613,145 @@ export default function ProfilePage() {
                           </div>
                         </div>
                       </div>
+
+                      <div className="mt-4 flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="bg-white/5 hover:bg-white/10"
+                          onClick={() => {
+                            const matchTokenId = n.tokenId || n.nftTokenId || n.nftokenId;
+                            const matchOrderId = n.orderId;
+                            const matchLegacyId = n.id;
+                            const matchWallet = n.walletAddress;
+                            const matchPurchasedAt =
+                              n.purchasedAt || n.purchaseDate || n.createdAt;
+                            const shouldRemove = (x: any) => {
+                              if (matchTokenId && x.tokenId === matchTokenId) return true;
+                              if (matchOrderId && x.orderId === matchOrderId) return true;
+                              if (matchLegacyId !== undefined && x.id === matchLegacyId) return true;
+                              if (
+                                matchWallet &&
+                                matchPurchasedAt &&
+                                x.walletAddress === matchWallet &&
+                                (x.purchasedAt === matchPurchasedAt ||
+                                  x.purchaseDate === matchPurchasedAt ||
+                                  x.createdAt === matchPurchasedAt)
+                              ) {
+                                return true;
+                              }
+                              return false;
+                            };
+
+                            try {
+                              const pendingRaw = localStorage.getItem(
+                                "veritix_tickets_pending"
+                              );
+                              const pendingArr = pendingRaw
+                                ? JSON.parse(pendingRaw)
+                                : [];
+                              const pendingNext = pendingArr.filter(
+                                (x: any) => !shouldRemove(x)
+                              );
+                              localStorage.setItem(
+                                "veritix_tickets_pending",
+                                JSON.stringify(pendingNext)
+                              );
+
+                              const pendingLegacyRaw = localStorage.getItem(
+                                "mock_user_nfts_pending"
+                              );
+                              const pendingLegacyArr = pendingLegacyRaw
+                                ? JSON.parse(pendingLegacyRaw)
+                                : [];
+                              const pendingLegacyNext = pendingLegacyArr.filter(
+                                (x: any) => !shouldRemove(x)
+                              );
+                              localStorage.setItem(
+                                "mock_user_nfts_pending",
+                                JSON.stringify(pendingLegacyNext)
+                              );
+
+                              if (n.walletAddress) {
+                                const ownedRaw = localStorage.getItem(
+                                  "veritix_tickets"
+                                );
+                                const ownedArr = ownedRaw
+                                  ? JSON.parse(ownedRaw)
+                                  : [];
+                                ownedArr.push({
+                                  ...n,
+                                  restoredAt: new Date().toISOString(),
+                                });
+                                localStorage.setItem(
+                                  "veritix_tickets",
+                                  JSON.stringify(ownedArr)
+                                );
+                                window.dispatchEvent(
+                                  new Event("veritix_tickets_changed")
+                                );
+                              } else {
+                                const legacyRaw = localStorage.getItem(
+                                  "mock_user_nfts"
+                                );
+                                const legacyArr = legacyRaw
+                                  ? JSON.parse(legacyRaw)
+                                  : [];
+                                legacyArr.push({
+                                  ...n,
+                                  restoredAt: new Date().toISOString(),
+                                });
+                                localStorage.setItem(
+                                  "mock_user_nfts",
+                                  JSON.stringify(legacyArr)
+                                );
+                                window.dispatchEvent(
+                                  new Event("mock_user_nfts_changed")
+                                );
+                              }
+
+                              const listingsRaw =
+                                localStorage.getItem("mock_listings");
+                              const listingsArr = listingsRaw
+                                ? JSON.parse(listingsRaw)
+                                : [];
+                              const listingsNext = listingsArr.filter(
+                                (x: any) =>
+                                  x.ticket?.tokenId !== matchTokenId &&
+                                  x.ticket?.orderId !== matchOrderId
+                              );
+                              localStorage.setItem(
+                                "mock_listings",
+                                JSON.stringify(listingsNext)
+                              );
+
+                              window.dispatchEvent(
+                                new Event("mock_listings_changed")
+                              );
+                              window.dispatchEvent(
+                                new Event("veritix_tickets_pending_changed")
+                              );
+                              window.dispatchEvent(
+                                new Event("mock_user_nfts_pending_changed")
+                              );
+
+                              toast({
+                                title: "Listing removed",
+                                description: "Ticket moved back to My Tickets.",
+                              });
+                            } catch (e) {
+                              toast({
+                                title: "Remove failed",
+                                description:
+                                  "Could not remove listing from marketplace.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          Remove from marketplace
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 );
