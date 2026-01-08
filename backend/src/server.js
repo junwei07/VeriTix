@@ -1,3 +1,5 @@
+const path = require("path");
+
 const dotenv = require("dotenv");
 dotenv.config();
 console.log("ENV check:", {
@@ -6,7 +8,7 @@ console.log("ENV check:", {
 });
 
 const express = require("express");
-const cors = require("cors");
+app.use(cors({ origin: true, credentials: true }));
 const mongoose = require("mongoose");
 
 const authRoutes = require("./routes/authRoutes");
@@ -87,3 +89,15 @@ mongoose
       console.log(`Server running on port ${PORT} (no MongoDB)`);
     });
   });
+
+// Serve Vite build
+const frontendDist = path.join(__dirname, "..", "frontend", "dist");
+app.use(express.static(frontendDist));
+
+// SPA fallback (important for wouter routes like /new-nft)
+app.get("*", (req, res, next) => {
+  // Don't hijack API routes
+  if (req.path.startsWith("/api") || req.path.startsWith("/health"))
+    return next();
+  res.sendFile(path.join(frontendDist, "index.html"));
+});
