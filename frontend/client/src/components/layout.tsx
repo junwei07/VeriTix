@@ -1,22 +1,19 @@
 import * as React from "react";
 import { Link, useLocation } from "wouter";
-import { Ticket, Home, User, LogIn, ShoppingBag, Calendar, Sparkles, Github } from "lucide-react";
+import { Home, User, LogIn, ShoppingBag, Calendar, Sparkles, Github } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { user, isAuthenticated } = useAuth();
-  const displayName = user
-    ? [user.firstName, user.lastName].filter(Boolean).join(" ").trim()
-    : "";
+  const { isAuthenticated } = useAuth();
 
   const navItems = [
     { href: "/", label: "Home", icon: Home },
     { href: "/events", label: "Events", icon: Calendar },
     { href: "/marketplace", label: "Marketplace", icon: ShoppingBag },
-    { href: "/profile", label: "Identity", icon: User },
+    { href: "/profile", label: "Profile", icon: User },
   ];
 
   // Helper to determine if a link is active (handles nested routes)
@@ -157,7 +154,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
             {/* Column 4: Account & Status */}
             <div className="space-y-6">
-              <h4 className="text-sm font-bold uppercase tracking-widest text-white/50">Manage Identity</h4>
+            <h4 className="text-sm font-bold uppercase tracking-widest text-white/50">Manage Profile</h4>
               <div className="space-y-4">
                 {isAuthenticated ? (
                   <Link href="/profile">

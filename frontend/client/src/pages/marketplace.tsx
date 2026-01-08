@@ -1,7 +1,7 @@
 import { MOCK_LISTINGS } from "@/lib/mock-data";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, TrendingUp, BarChart3, Wallet, ArrowUpDown, Ticket, User } from "lucide-react";
+import { Search, ArrowUpDown, Ticket } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -59,13 +59,6 @@ export default function MarketplacePage() {
       return 0;
     });
 
-  const stats = [
-    { label: "24h Volume", value: "12,450 XRP", change: "+12.5%", icon: TrendingUp, color: "text-emerald-400" },
-    { label: "Avg. Price", value: "45.00 SGD", change: "-2.1%", icon: BarChart3, color: "text-purple-400" },
-    { label: "Active Listings", value: "1,204", change: "+5.4%", icon: Wallet, color: "text-blue-400" },
-    { label: "Traders (24h)", value: "328", change: "+8.2%", icon: User, color: "text-orange-400" },
-  ];
-
   const { isAuthenticated } = useAuth();
 
   return (
@@ -79,59 +72,19 @@ export default function MarketplacePage() {
 
       <div className="container mx-auto px-4 md:px-6 space-y-6 pt-8">
         
-        {/* Dashboard Header - Full Width Stats */}
-        <motion.section 
+        <motion.section
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="w-full"
         >
           <div className="bg-card/30 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-6">
-              <div>
-                <h1 className="text-2xl md:text-3xl font-display font-bold text-white">
-                  Secondary Market
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Real-time ticket trading on XRP Ledger
-                </p>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                Live Trading
-              </div>
-            </div>
-            
-            {/* Full Width Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-              {stats.map((stat, i) => (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: i * 0.05 }}
-                  className="bg-white/5 border border-white/5 rounded-xl p-3 md:p-4 hover:bg-white/10 transition-colors"
-                >
-                  <div className="flex items-center gap-2 md:gap-3">
-                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0 ${stat.color}`}>
-                      <stat.icon className="w-4 h-4 md:w-5 md:h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[9px] md:text-[11px] text-muted-foreground uppercase tracking-wide truncate">{stat.label}</p>
-                      <div className="flex items-baseline gap-1 md:gap-2">
-                        <p className="font-bold text-white text-sm md:text-lg truncate">{stat.value}</p>
-                        <span className={`text-[8px] md:text-[10px] font-medium ${stat.change.startsWith('+') ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {stat.change}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-white">
+              Marketplace
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              List tickets you can’t make it to, or grab a verified second-hand transfer.
+            </p>
           </div>
         </motion.section>
 

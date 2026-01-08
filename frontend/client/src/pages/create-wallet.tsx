@@ -27,6 +27,33 @@ function safeStringify(value: any) {
   );
 }
 
+function truncateMiddle(value?: string, head = 6, tail = 4) {
+  if (!value) return "";
+  if (value.length <= head + tail + 3) return value;
+  return `${value.slice(0, head)}…${value.slice(-tail)}`;
+}
+
+async function copyToClipboard(value: string) {
+  if (!value) return;
+  try {
+    await navigator.clipboard.writeText(value);
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = value;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    textarea.remove();
+  }
+}
+
+function getExplorerLink(txHash?: string) {
+  if (!txHash) return "#";
+  return `https://testnet.xrpl.org/transactions/${txHash}`;
+}
+
 export default function CreatWalletCard({
   onSubmit,
   onBack,
@@ -45,6 +72,8 @@ export default function CreatWalletCard({
     | "error"
   >("idle");
   const [error, setError] = useState<string | null>(null);
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [rawOpen, setRawOpen] = useState(false);
   const [, setLocation] = useLocation();
   
 
@@ -54,6 +83,7 @@ export default function CreatWalletCard({
     startingBalance?: string | number;
     owner?: string;
     nftId?: string;
+    txHash?: string;
     mintRes?: any;
     listRes?: any;
   }>({});
@@ -132,8 +162,9 @@ export default function CreatWalletCard({
 
       const owner = mintRes?.result?.tx_json?.Account;
       const nftId = mintRes?.result?.meta?.nftoken_id;
+      const txHash = mintRes?.result?.hash;
 
-      setResult((r) => ({ ...r, owner, nftId, mintRes }));
+      setResult((r) => ({ ...r, owner, nftId, txHash, mintRes }));
 
       if (cancelledRef.current) return;
 
@@ -187,22 +218,32 @@ export default function CreatWalletCard({
       case "idle":
         return "Ready";
       case "connecting":
-        return "Connecting…";
+        return "Securing connection…";
       case "funding":
-        return "Creating XRPL wallet…";
+        return "Securing your account…";
       case "minting":
-        return "Minting NFT…";
+        return "Securing your ticket…";
       case "buying":
         return "Creating buy offer…";
       case "listing":
         return "Listing NFTs…";
       case "done":
-        return "Minted Ticket NFT";
+        return "Ticket Secured";
       case "error":
         return "Error";
     }
   }, [status]);
 
+  const handleClose = () => {
+    cancelledRef.current = true;
+    appendLog("warn", "Cancelled by user.");
+    cleanup();
+    if (onBack) {
+      onBack();
+      return;
+    }
+    setLocation("/");
+  };
 
   const handleBackOrView = () => {
     if (status === "done") {
@@ -246,114 +287,216 @@ export default function CreatWalletCard({
               </div>
 
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    cancelledRef.current = true;
-                    appendLog("warn", "Cancelled by user.");
-                    cleanup();
-                    setStatus("idle");
-                  }}
-                  className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={runFlow}
-                  className="rounded-lg bg-emerald-300 px-3 py-2 text-sm font-semibold text-black hover:bg-emerald-200"
-                >
-                  Retry
-                </button>
-              </div>
-            </div>
-
-            {/* Quick summary */}
-            <div className="mt-6 grid gap-3 rounded-xl border border-white/10 bg-black/30 p-4 text-sm text-white/85">
-              <div className="flex items-start justify-between gap-3">
-                <span className="shrink-0 text-white/60">Wallet</span>
-                <span className="min-w-0 flex-1 text-right font-mono whitespace-normal break-all">
-                  {result.fundedAddress ?? "—"}
-                </span>
-              </div>
-
-              <div className="flex items-start justify-between gap-3">
-                <span className="shrink-0 text-white/60">Balance</span>
-                <span className="min-w-0 flex-1 text-right font-mono whitespace-normal break-words">
-                  {result.startingBalance ?? "—"}
-                </span>
-              </div>
-
-              <div className="flex items-start justify-between gap-3">
-                <span className="shrink-0 text-white/60">NFT ID</span>
-                <span className="min-w-0 flex-1 text-right font-mono whitespace-normal break-all">
-                  {result.nftId ?? "—"}
-                </span>
-              </div>
-            </div>
-
-            {/* Live logs */}
-            <div className="mt-6">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-white/80 font-semibold">Live output</p>
-                {error ? <p className="text-red-300 text-sm">{error}</p> : null}
-              </div>
-
-              <div className="h-56 overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 font-mono text-xs text-white/80">
-                {logs.length === 0 ? (
-                  <div className="text-white/40">Waiting for output…</div>
+                {status === "error" ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
+                    >
+                      Close
+                    </button>
+                    <button
+                      type="button"
+                      onClick={runFlow}
+                      className="rounded-lg bg-emerald-300 px-3 py-2 text-sm font-semibold text-black hover:bg-emerald-200"
+                    >
+                      Retry
+                    </button>
+                  </>
                 ) : (
-                  logs.map((l, idx) => (
-                    <div key={idx} className="whitespace-pre-wrap break-words">
-                      <span className="text-white/40">
-                        {new Date(l.ts).toLocaleTimeString()}{" "}
-                      </span>
-                      <span
-                        className={
-                          l.level === "error"
-                            ? "text-red-300"
-                            : l.level === "warn"
-                            ? "text-amber-200"
-                            : l.level === "info"
-                            ? "text-emerald-200"
-                            : "text-white/80"
-                        }
-                      >
-                        {l.msg}
-                      </span>
-                    </div>
-                  ))
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm font-semibold text-white/85 hover:bg-white/10"
+                  >
+                    Close
+                  </button>
                 )}
               </div>
             </div>
 
-            {/* Raw JSON (optional) */}
-            {(result.mintRes || result.listRes) && (
-              <details className="mt-4 rounded-xl border border-white/10 bg-black/30 p-4 text-white/80">
-                <summary className="cursor-pointer select-none font-semibold">
-                  View raw results (JSON)
-                </summary>
-                <pre className="mt-3 overflow-auto text-xs">
-                  {safeStringify({
-                    mintRes: result.mintRes,
-                    listRes: result.listRes,
-                  })}
-                </pre>
-              </details>
-            )}
+            <div className="mt-6 grid gap-4 rounded-xl border border-white/10 bg-black/30 p-4 text-sm text-white/85">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-200">
+                  Verified by Singpass
+                </span>
+                <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-200">
+                  Secured on XRPL
+                </span>
+              </div>
 
-            <button
-              type="button"
-              onClick={handleBackOrView}
-              disabled={status !== "done" && status !== "error"}
-              className={`mt-8 mx-auto block text-lg font-semibold text-white/90 hover:text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/15" ${
-                status !== "done" && status !== "error"
-                  ? "opacity-50 cursor-not-allowed"
-                  : "bg-primary text-black hover:bg-emerald-200 focus:ring-emerald-300/40"
-              }`}
-            >
-              {status === "done" ? "View Ticket NFT" : "Loading..."}
-            </button>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/40 px-3 py-2">
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-white/60">
+                    Ticket ID
+                  </div>
+                  <div className="font-mono text-sm text-white">
+                    {truncateMiddle(result.nftId || "—")}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(result.nftId || "")}
+                  className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-white/80 hover:bg-white/10"
+                  disabled={!result.nftId}
+                >
+                  Copy
+                </button>
+              </div>
+
+              {error ? (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                  {error}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-6 rounded-xl border border-white/10 bg-black/30 p-4 text-white/85">
+              <button
+                type="button"
+                onClick={() => setAuditOpen((prev) => !prev)}
+                className="flex w-full items-center justify-between text-left text-sm font-semibold text-white/80"
+              >
+                <span>View blockchain proof (Audit)</span>
+                <span className="text-xs text-white/50">
+                  {auditOpen ? "Hide" : "Show"}
+                </span>
+              </button>
+
+              {auditOpen && (
+                <div className="mt-4 grid gap-3 text-xs text-white/80">
+                  <div className="rounded-lg border border-white/10 bg-black/40 p-3">
+                    <div className="uppercase tracking-wide text-white/50">
+                      Full Token ID
+                    </div>
+                    <div className="mt-1 font-mono break-all text-white/90">
+                      {result.nftId || "—"}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-white/10 bg-black/40 p-3">
+                    <div className="uppercase tracking-wide text-white/50">
+                      Transaction Hash
+                    </div>
+                    <div className="mt-1 font-mono break-all text-white/90">
+                      {result.txHash || "—"}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(result.txHash || "")}
+                        className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-white/80 hover:bg-white/10"
+                        disabled={!result.txHash}
+                      >
+                        Copy Tx Hash
+                      </button>
+                      {result.txHash ? (
+                        <a
+                          href={getExplorerLink(result.txHash)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-200 hover:bg-emerald-500/20"
+                        >
+                          View on XRPL Explorer
+                        </a>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {result.fundedAddress ? (
+                    <div className="rounded-lg border border-white/10 bg-black/40 p-3">
+                      <div className="uppercase tracking-wide text-white/50">
+                        Wallet Address
+                      </div>
+                      <div className="mt-1 font-mono break-all text-white/90">
+                        {result.fundedAddress}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(result.fundedAddress || "")}
+                        className="mt-2 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-white/80 hover:bg-white/10"
+                      >
+                        Copy Wallet
+                      </button>
+                    </div>
+                  ) : null}
+
+                  <div className="rounded-lg border border-white/10 bg-black/40 p-3">
+                    <button
+                      type="button"
+                      onClick={() => setRawOpen((prev) => !prev)}
+                      className="flex w-full items-center justify-between text-left text-[11px] font-semibold text-white/70"
+                    >
+                      <span>Live output & raw JSON</span>
+                      <span className="text-[10px] text-white/40">
+                        {rawOpen ? "Hide" : "Show"}
+                      </span>
+                    </button>
+
+                    {rawOpen && (
+                      <div className="mt-3 grid gap-3">
+                        <div className="h-44 overflow-auto rounded-lg border border-white/10 bg-black/50 p-3 font-mono text-[10px] text-white/80">
+                          {logs.length === 0 ? (
+                            <div className="text-white/40">
+                              Waiting for output…
+                            </div>
+                          ) : (
+                            logs.map((l, idx) => (
+                              <div
+                                key={idx}
+                                className="whitespace-pre-wrap break-words"
+                              >
+                                <span className="text-white/40">
+                                  {new Date(l.ts).toLocaleTimeString()}{" "}
+                                </span>
+                                <span
+                                  className={
+                                    l.level === "error"
+                                      ? "text-red-300"
+                                      : l.level === "warn"
+                                      ? "text-amber-200"
+                                      : l.level === "info"
+                                      ? "text-emerald-200"
+                                      : "text-white/80"
+                                  }
+                                >
+                                  {l.msg}
+                                </span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        {(result.mintRes || result.listRes) && (
+                          <div className="rounded-lg border border-white/10 bg-black/50 p-3 font-mono text-[10px] text-white/80">
+                            <div className="text-white/50 mb-2">
+                              Raw JSON
+                            </div>
+                            <pre className="whitespace-pre-wrap break-words">
+                              {safeStringify({
+                                mintRes: result.mintRes,
+                                listRes: result.listRes,
+                              })}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {status === "done" && (
+              <button
+                type="button"
+                onClick={handleBackOrView}
+                className="mt-8 mx-auto block text-lg font-semibold text-black rounded-md px-3 py-2 bg-primary hover:bg-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-300/40"
+              >
+                View My Tickets
+              </button>
+            )}
           </div>
         </div>
       </div>

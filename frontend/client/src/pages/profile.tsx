@@ -12,7 +12,7 @@ export default function ProfilePage() {
   const [mockUser, setMockUser] = useState<any | null>(null);
   const [nfts, setNfts] = useState<any[]>([]);
   const [listingInProgress, setListingInProgress] = useState(false);
-  const [tab, setTab] = useState<"details" | "nfts">("details");
+  const tab: "nfts" = "nfts";
 
   useEffect(() => {
     try {
@@ -102,7 +102,7 @@ export default function ProfilePage() {
         <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-emerald-500/10 blur-[100px]" />
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full bg-primary/10 blur-[100px]" />
       </div>
-      <h1 className="text-4xl font-display font-bold">Identity Profile</h1>
+      <h1 className="text-4xl font-display font-bold">Profile</h1>
 
       {/* User Info Card */}
       <div className="bg-card border border-white/10 rounded-3xl p-8 space-y-6 shadow-xl relative overflow-hidden">
@@ -134,18 +134,7 @@ export default function ProfilePage() {
 
       <div className="pt-4 flex justify-between items-center">
         <div className="flex gap-2">
-          <Button
-            variant={tab === "details" ? "default" : "ghost"}
-            onClick={() => setTab("details")}
-          >
-            Details
-          </Button>
-          <Button
-            variant={tab === "nfts" ? "default" : "ghost"}
-            onClick={() => setTab("nfts")}
-          >
-            See my Tickets
-          </Button>
+          <Button variant="default">My Tickets</Button>
         </div>
         <div>
           {user ? (
