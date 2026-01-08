@@ -5,6 +5,14 @@ import { Loader2, LogOut, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function ProfilePage() {
   const { user, isLoading, logout } = useAuth();
@@ -14,6 +22,9 @@ export default function ProfilePage() {
   const [pendingNfts, setPendingNfts] = useState<any[]>([]);
   const [listingInProgress, setListingInProgress] = useState(false);
   const [tab, setTab] = useState<"owned" | "pending">("owned");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [ticketToList, setTicketToList] = useState<any | null>(null);
+  const [ticketPriceCents, setTicketPriceCents] = useState<number>(0);
 
   useEffect(() => {
     try {
@@ -280,182 +291,32 @@ export default function ProfilePage() {
                           size="sm"
                           variant="ghost"
                           className="bg-white/5 hover:bg-white/10"
-                          onClick={async () => {
+                          onClick={() => {
                             try {
-                          // Determine sale price from NFT data (in cents)
-                          const nftPriceCents =
-                            n.amountCents ??
-                            n.purchasePrice ??
-                            (n.price ? Math.round(n.price) : undefined);
-                          if (!nftPriceCents || nftPriceCents <= 0) {
-                            toast({
-                              title: "Cannot list",
-                              description:
-                                "This NFT has no valid price to list",
-                              variant: "destructive",
-                            });
-                            return;
-                          }
+                              // Determine sale price from NFT data (in cents)
+                              const nftPriceCents =
+                                n.amountCents ??
+                                n.purchasePrice ??
+                                (n.price ? Math.round(n.price) : undefined);
+                              if (!nftPriceCents || nftPriceCents <= 0) {
+                                toast({
+                                  title: "Cannot list",
+                                  description:
+                                    "This NFT has no valid price to list",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
 
-                          // Confirmation popup
-                          const confirmMsg = `List "${
-                            n.description || "NFT"
-                          }" for ${(nftPriceCents / 100).toFixed(
-                            2
-                          )} SGD on the marketplace?`;
-                          if (!window.confirm(confirmMsg)) return;
-
-                          setListingInProgress(true);
-
-                          // Load existing listings from localStorage
-                          const raw = localStorage.getItem("mock_listings");
-                          const existing = raw ? JSON.parse(raw) : [];
-                          const nextId =
-                            (existing.length > 0
-                              ? Math.max(...existing.map((x: any) => x.id))
-                              : 1000) + 1;
-                          const sellerName = user
-                            ? user.nric || user.walletAddress
-                            : mockUser?.username ||
-                              mockUser?.email ||
-                              "Anonymous";
-
-                          // Ensure event image and fields are copied into the listing
-                          const ticketWithEvent = {
-                            ...n,
-                            id: nextId + 100,
-                            seat:
-                              n.seat || n.ticket?.seat || n.seat || undefined,
-                            event: n.event || {
-                              id: n.eventId || 0,
-                              title: n.description || "NFT",
-                              description: n.description || "",
-                              location: n.location || "Unknown",
-                              date: n.date || new Date().toISOString(),
-                              price: n.price || 0,
-                              imageUrl:
-                                n.imageUrl ||
-                                n.image?.url ||
-                                (n.event && n.event.imageUrl) ||
-                                "",
-                              availableTickets: n.availableTickets || 0,
-                              totalTickets: n.totalTickets || 0,
-                              createdAt:
-                                n.createdAt || new Date().toISOString(),
-                            },
-                          };
-
-                          const listing = {
-                            id: nextId,
-                            ticket: ticketWithEvent,
-                            price: nftPriceCents,
-                            sellerName,
-                          };
-
-                          existing.push(listing);
-                          localStorage.setItem(
-                            "mock_listings",
-                            JSON.stringify(existing)
-                          );
-
-                          const pendingTicket = {
-                            ...n,
-                            pendingListedAt: new Date().toISOString(),
-                          };
-
-                          if (n.walletAddress) {
-                            const pendingRaw = localStorage.getItem(
-                              "veritix_tickets_pending"
-                            );
-                            const pendingArr = pendingRaw
-                              ? JSON.parse(pendingRaw)
-                              : [];
-                            pendingArr.push(pendingTicket);
-                            localStorage.setItem(
-                              "veritix_tickets_pending",
-                              JSON.stringify(pendingArr)
-                            );
-                          } else {
-                            const pendingLegacyRaw = localStorage.getItem(
-                              "mock_user_nfts_pending"
-                            );
-                            const pendingLegacyArr = pendingLegacyRaw
-                              ? JSON.parse(pendingLegacyRaw)
-                              : [];
-                            pendingLegacyArr.push(pendingTicket);
-                            localStorage.setItem(
-                              "mock_user_nfts_pending",
-                              JSON.stringify(pendingLegacyArr)
-                            );
-                          }
-
-                          const matchTokenId = n.tokenId || n.nftTokenId || n.nftokenId;
-                          const matchOrderId = n.orderId;
-                          const matchLegacyId = n.id;
-                          const matchWallet = n.walletAddress;
-                          const matchPurchasedAt = n.purchasedAt || n.purchaseDate || n.createdAt;
-                          const shouldRemove = (x: any) => {
-                            if (matchTokenId && x.tokenId === matchTokenId) return true;
-                            if (matchOrderId && x.orderId === matchOrderId) return true;
-                            if (matchLegacyId !== undefined && x.id === matchLegacyId) return true;
-                            if (
-                              matchWallet &&
-                              matchPurchasedAt &&
-                              x.walletAddress === matchWallet &&
-                              (x.purchasedAt === matchPurchasedAt ||
-                                x.purchaseDate === matchPurchasedAt ||
-                                x.createdAt === matchPurchasedAt)
-                            ) {
-                              return true;
-                            }
-                            return false;
-                          };
-
-                          // Remove NFT from user's owned list (only the matching ticket)
-                          const nftRaw = localStorage.getItem("mock_user_nfts");
-                          const nftArr = nftRaw ? JSON.parse(nftRaw) : [];
-                          const newArr = nftArr.filter((x: any) => !shouldRemove(x));
-                          localStorage.setItem("mock_user_nfts", JSON.stringify(newArr));
-
-                          if (n.walletAddress) {
-                            const ownedRaw = localStorage.getItem("veritix_tickets");
-                            const ownedArr = ownedRaw ? JSON.parse(ownedRaw) : [];
-                            const ownedNext = ownedArr.filter((x: any) => !shouldRemove(x));
-                            localStorage.setItem(
-                              "veritix_tickets",
-                              JSON.stringify(ownedNext)
-                            );
-                          }
-
-                          // Trigger update events and UI
-                          window.dispatchEvent(
-                            new Event("mock_listings_changed")
-                          );
-                          window.dispatchEvent(
-                            new Event("mock_user_nfts_changed")
-                          );
-                          window.dispatchEvent(
-                            new Event("veritix_tickets_changed")
-                          );
-                          window.dispatchEvent(
-                            new Event("veritix_tickets_pending_changed")
-                          );
-                          window.dispatchEvent(
-                            new Event("mock_user_nfts_pending_changed")
-                          );
-                          toast({
-                            title: "Listing created",
-                            description:
-                              "Your NFT is now listed on the marketplace",
-                          });
-                        } catch (e) {
-                          toast({
-                            title: "Listing failed",
-                            description: "Could not list NFT",
-                            variant: "destructive",
-                          });
-                            } finally {
-                              setListingInProgress(false);
+                              setTicketToList(n);
+                              setTicketPriceCents(nftPriceCents);
+                              setConfirmOpen(true);
+                            } catch (e) {
+                              toast({
+                                title: "Listing failed",
+                                description: "Could not list NFT",
+                                variant: "destructive",
+                              });
                             }
                           }}
                           disabled={listingInProgress}
@@ -480,6 +341,200 @@ export default function ProfilePage() {
           )}
         </div>
       )}
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="sm:max-w-md bg-zinc-900 border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-display">
+              List ticket for resale
+            </DialogTitle>
+            <DialogDescription>
+              Confirm this ticket is ready to be listed on the marketplace.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="rounded-xl border border-white/10 bg-black/40 p-4">
+              <div className="text-sm font-semibold text-white">
+                {ticketToList?.description || ticketToList?.event?.title || "Ticket"}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                Price: {(ticketPriceCents / 100).toFixed(2)} SGD
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!ticketToList) return;
+                const n = ticketToList;
+                const nftPriceCents = ticketPriceCents;
+                setConfirmOpen(false);
+                setListingInProgress(true);
+
+                try {
+                  // Load existing listings from localStorage
+                  const raw = localStorage.getItem("mock_listings");
+                  const existing = raw ? JSON.parse(raw) : [];
+                  const nextId =
+                    (existing.length > 0
+                      ? Math.max(...existing.map((x: any) => x.id))
+                      : 1000) + 1;
+                  const sellerName = user
+                    ? user.nric || user.walletAddress
+                    : mockUser?.username ||
+                      mockUser?.email ||
+                      "Anonymous";
+
+                  // Ensure event image and fields are copied into the listing
+                  const ticketWithEvent = {
+                    ...n,
+                    id: nextId + 100,
+                    seat:
+                      n.seat || n.ticket?.seat || n.seat || undefined,
+                    event: n.event || {
+                      id: n.eventId || 0,
+                      title: n.description || "NFT",
+                      description: n.description || "",
+                      location: n.location || "Unknown",
+                      date: n.date || new Date().toISOString(),
+                      price: n.price || 0,
+                      imageUrl:
+                        n.imageUrl ||
+                        n.image?.url ||
+                        (n.event && n.event.imageUrl) ||
+                        "",
+                      availableTickets: n.availableTickets || 0,
+                      totalTickets: n.totalTickets || 0,
+                      createdAt:
+                        n.createdAt || new Date().toISOString(),
+                    },
+                  };
+
+                  const listing = {
+                    id: nextId,
+                    ticket: ticketWithEvent,
+                    price: nftPriceCents,
+                    sellerName,
+                  };
+
+                  existing.push(listing);
+                  localStorage.setItem(
+                    "mock_listings",
+                    JSON.stringify(existing)
+                  );
+
+                  const pendingTicket = {
+                    ...n,
+                    pendingListedAt: new Date().toISOString(),
+                  };
+
+                  if (n.walletAddress) {
+                    const pendingRaw = localStorage.getItem(
+                      "veritix_tickets_pending"
+                    );
+                    const pendingArr = pendingRaw
+                      ? JSON.parse(pendingRaw)
+                      : [];
+                    pendingArr.push(pendingTicket);
+                    localStorage.setItem(
+                      "veritix_tickets_pending",
+                      JSON.stringify(pendingArr)
+                    );
+                  } else {
+                    const pendingLegacyRaw = localStorage.getItem(
+                      "mock_user_nfts_pending"
+                    );
+                    const pendingLegacyArr = pendingLegacyRaw
+                      ? JSON.parse(pendingLegacyRaw)
+                      : [];
+                    pendingLegacyArr.push(pendingTicket);
+                    localStorage.setItem(
+                      "mock_user_nfts_pending",
+                      JSON.stringify(pendingLegacyArr)
+                    );
+                  }
+
+                  const matchTokenId = n.tokenId || n.nftTokenId || n.nftokenId;
+                  const matchOrderId = n.orderId;
+                  const matchLegacyId = n.id;
+                  const matchWallet = n.walletAddress;
+                  const matchPurchasedAt = n.purchasedAt || n.purchaseDate || n.createdAt;
+                  const shouldRemove = (x: any) => {
+                    if (matchTokenId && x.tokenId === matchTokenId) return true;
+                    if (matchOrderId && x.orderId === matchOrderId) return true;
+                    if (matchLegacyId !== undefined && x.id === matchLegacyId) return true;
+                    if (
+                      matchWallet &&
+                      matchPurchasedAt &&
+                      x.walletAddress === matchWallet &&
+                      (x.purchasedAt === matchPurchasedAt ||
+                        x.purchaseDate === matchPurchasedAt ||
+                        x.createdAt === matchPurchasedAt)
+                    ) {
+                      return true;
+                    }
+                    return false;
+                  };
+
+                          // Remove NFT from user's owned list (only the matching ticket)
+                  const nftRaw = localStorage.getItem("mock_user_nfts");
+                  const nftArr = nftRaw ? JSON.parse(nftRaw) : [];
+                  const newArr = nftArr.filter((x: any) => !shouldRemove(x));
+                  localStorage.setItem("mock_user_nfts", JSON.stringify(newArr));
+
+                  if (n.walletAddress) {
+                    const ownedRaw = localStorage.getItem("veritix_tickets");
+                    const ownedArr = ownedRaw ? JSON.parse(ownedRaw) : [];
+                    const ownedNext = ownedArr.filter((x: any) => !shouldRemove(x));
+                    localStorage.setItem(
+                      "veritix_tickets",
+                      JSON.stringify(ownedNext)
+                    );
+                  }
+
+                          // Trigger update events and UI
+                  window.dispatchEvent(
+                    new Event("mock_listings_changed")
+                  );
+                  window.dispatchEvent(
+                    new Event("mock_user_nfts_changed")
+                  );
+                  window.dispatchEvent(
+                    new Event("veritix_tickets_changed")
+                  );
+                  window.dispatchEvent(
+                    new Event("veritix_tickets_pending_changed")
+                  );
+                  window.dispatchEvent(
+                    new Event("mock_user_nfts_pending_changed")
+                  );
+                  toast({
+                    title: "Listing created",
+                    description:
+                      "Your NFT is now listed on the marketplace",
+                  });
+                } catch (e) {
+                  toast({
+                    title: "Listing failed",
+                    description: "Could not list NFT",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setListingInProgress(false);
+                }
+              }}
+              disabled={listingInProgress}
+            >
+              List for resale
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {tab === "pending" && (
         <div className="mt-6 space-y-4">
