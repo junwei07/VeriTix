@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
 import {
   Carousel,
   CarouselContent,
@@ -87,9 +88,23 @@ export default function HomePage() {
                   </span>
                 </h1>
                 <p className="text-lg md:text-xl text-muted-foreground max-w-xl leading-relaxed">
-                  Stop paying scalpers. Secure your entry with soulbound NFT identity.
-                  The future of event access is verified.
+                  VeriTix secures tickets after purchase with verified identity.
+                  Coming from Ticketmaster or another partner? Verify in seconds.
                 </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href="/bridge">
+                  <Button size="lg" className="gap-2">
+                    Verify My Ticket
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+                <Link href="/events">
+                  <Button size="lg" variant="outline">
+                    Explore Partner Events
+                  </Button>
+                </Link>
               </div>
 
               {/* Search Block */}

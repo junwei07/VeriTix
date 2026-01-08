@@ -17,6 +17,7 @@ import ProfilePage from "@/pages/profile";
 import MarketplacePage from "@/pages/marketplace";
 import EventsPage from "@/pages/events";
 import CreateWalletPage from "@/pages/create-wallet";
+import BridgePage from "@/pages/bridge";
 import NewNftPage from "./pages/new-nft";
 
 function Router() {
@@ -36,6 +37,7 @@ function Router() {
         <Route path="/my-tickets" component={MyTicketsPage} />
         <Route path="/tickets/:id" component={TicketViewPage} />
         <Route path="/profile" component={ProfilePage} />
+        <Route path="/bridge" component={BridgePage} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

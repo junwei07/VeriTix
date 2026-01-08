@@ -4,6 +4,7 @@ import { Loader2, Search, Calendar, Filter } from "lucide-react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 
 export default function EventsPage() {
@@ -33,10 +34,10 @@ export default function EventsPage() {
             className="space-y-4 max-w-2xl"
           >
             <h1 className="text-4xl md:text-6xl font-display font-bold tracking-tight text-white">
-              Explore <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Events</span>
+              Partner <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Events</span>
             </h1>
             <p className="text-lg text-muted-foreground">
-              Discover upcoming concerts, workshops, and experiences. Secure your spot on the blockchain.
+              Verified events from partner platforms. If you already purchased, verify your ticket here.
             </p>
           </motion.div>
 
@@ -65,6 +66,20 @@ export default function EventsPage() {
               Filters
             </Button>
           </motion.div>
+        </section>
+
+        <section className="rounded-3xl border border-white/10 bg-card/60 backdrop-blur-xl p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold">Already bought a ticket?</h2>
+            <p className="text-sm text-muted-foreground">
+              Verify and secure your ticket with Singpass in under a minute.
+            </p>
+          </div>
+          <Link href="/bridge">
+            <Button size="lg" className="gap-2">
+              Verify My Ticket
+            </Button>
+          </Link>
         </section>
 
         {/* Events Grid */}
