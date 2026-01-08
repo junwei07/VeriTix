@@ -1,12 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ShieldCheck, ArrowRight, UserCheck } from "lucide-react";
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 
 export default function LoginPage() {
+  const [, setLocation] = useLocation();
+
   const handleLogin = () => {
-    // Redirect to the Replit auth endpoint
-    window.location.href = "/api/login";
+    // For the mock flow: navigate to the verified page instead of real auth
+    setLocation("/verified");
   };
 
   return (
