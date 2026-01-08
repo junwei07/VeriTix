@@ -32,7 +32,6 @@ app.get('/', (_req, res) => {
 app.post('/api/test', (req, res) => {
   res.json({ message: 'Test successful', data: req.body });
 });
-
 app.use('/', paymentRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/tickets', ticketRoutes);
